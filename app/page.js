@@ -146,8 +146,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-
+    
       {/* Sidebar */}
       <div className="w-60 bg-gray-900 text-white p-6">
         <h2 className="text-xl font-bold mb-6">⚽ AI Football</h2>

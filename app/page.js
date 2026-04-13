@@ -22,88 +22,57 @@ export default function Home() {
     { id: 3, name: "Lee", specialty: "ball control", rating: 4.9 },
   ];
 
-  // 회원가입
   const signUp = async () => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      alert("회원가입 성공!");
-    } catch (e) {
-      alert(e.message);
-    }
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("회원가입 완료");
   };
 
-  // 로그인
   const login = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      alert("로그인 성공!");
-    } catch (e) {
-      alert(e.message);
-    }
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("로그인 완료");
   };
 
-  // 영상 업로드
   const uploadVideo = async (file) => {
     if (!file) return;
-
-    try {
-      const storageRef = ref(storage, `videos/${file.name}`);
-      await uploadBytes(storageRef, file);
-      alert("업로드 성공!");
-    } catch (e) {
-      alert("업로드 실패: " + e.message);
-    }
+    const storageRef = ref(storage, `videos/${file.name}`);
+    await uploadBytes(storageRef, file);
+    alert("업로드 완료");
   };
 
-  // AI 분석
   const analyze = async () => {
     setLoading(true);
 
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      body: JSON.stringify({
+        drill: "dribbling",
+        duration: "1 min",
+      }),
+    });
+
+    const data = await res.json();
+
     try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        body: JSON.stringify({
-          drill: "dribbling",
-          duration: "1 min",
-        }),
-      });
-
-      const data = await res.json();
-
-      let parsed;
-      try {
-        parsed = JSON.parse(data.result);
-      } catch (e) {
-        alert("AI 응답 오류");
-        return;
-      }
-
-      setResult(parsed);
-    } catch (e) {
-      alert("AI 분석 실패");
+      setResult(JSON.parse(data.result));
+    } catch {
+      alert("AI 응답 오류");
     }
 
     setLoading(false);
   };
 
-  // 코치 매칭
   const matchCoaches = () => {
     if (!result) return [];
 
     return coaches
-      .map((coach) => {
-        let score = 0;
-        if (result.improvements.join(" ").includes(coach.specialty)) {
-          score += 50;
-        }
-        score += coach.rating * 10;
-        return { ...coach, matchScore: score };
-      })
+      .map((c) => ({
+        ...c,
+        matchScore: c.rating * 10,
+      }))
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 2);
   };
 
-  // 코치 요청
   const requestCoach = async (coach) => {
     await addDoc(collection(db, "coachRequests"), {
       coachName: coach.name,
@@ -118,121 +87,89 @@ export default function Home() {
   };
 
   return (
-    <div style={{
-      display: "flex",
-      minHeight: "100vh",
-      fontFamily: "Arial"
-    }}>
+    <div className="flex min-h-screen bg-gray-100">
 
-      {/* 사이드바 */}
-      <div style={{
-        width: 220,
-        background: "#111827",
-        color: "white",
-        padding: 20
-      }}>
-        <h2>⚽ AI Football</h2>
+      {/* Sidebar */}
+      <div className="w-60 bg-gray-900 text-white p-5">
+        <h2 className="text-xl font-bold mb-6">⚽ AI Football</h2>
 
-        <div style={{ marginTop: 20 }}>
-          <p>Dashboard</p>
-          <Link href="/requests">
-            <p style={{ cursor: "pointer" }}>📋 Requests</p>
+        <nav className="space-y-4">
+          <p className="text-gray-300">Dashboard</p>
+          <Link href="/requests" className="block hover:text-blue-400">
+            📋 Requests
           </Link>
-        </div>
+        </nav>
       </div>
 
-      {/* 메인 */}
-      <div style={{ flex: 1, padding: 30, background: "#f3f4f6" }}>
+      {/* Main */}
+      <div className="flex-1 p-8">
 
-        <h1>Dashboard</h1>
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-        {/* 로그인 카드 */}
-        <div style={{
-          background: "white",
-          padding: 20,
-          borderRadius: 10,
-          marginBottom: 20
-        }}>
-          <h3>Login</h3>
+        {/* Login Card */}
+        <div className="bg-white p-6 rounded-xl shadow mb-6">
+          <h3 className="font-semibold mb-4">Login</h3>
 
           <input
+            className="w-full border p-2 rounded mb-2"
             placeholder="Email"
-            value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ width: "100%", padding: 10, marginBottom: 10 }}
           />
 
           <input
+            className="w-full border p-2 rounded mb-3"
             type="password"
             placeholder="Password"
-            value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ width: "100%", padding: 10 }}
           />
 
-          <div style={{ marginTop: 10 }}>
-            <button onClick={signUp}>Sign Up</button>
-            <button onClick={login} style={{ marginLeft: 10 }}>
+          <div className="flex gap-2">
+            <button className="bg-gray-800 text-white px-4 py-2 rounded" onClick={signUp}>
+              Sign Up
+            </button>
+            <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={login}>
               Login
             </button>
           </div>
         </div>
 
-        {/* 업로드 카드 */}
-        <div style={{
-          background: "white",
-          padding: 20,
-          borderRadius: 10,
-          marginBottom: 20
-        }}>
-          <h3>Upload Training Video</h3>
+        {/* Upload */}
+        <div className="bg-white p-6 rounded-xl shadow mb-6">
+          <h3 className="font-semibold mb-4">Upload Training</h3>
 
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(e) => uploadVideo(e.target.files[0])}
-          />
+          <input type="file" onChange={(e) => uploadVideo(e.target.files[0])} />
 
-          <br /><br />
-
-          <button onClick={analyze}>
+          <button
+            className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
+            onClick={analyze}
+          >
             {loading ? "Analyzing..." : "Run AI Analysis"}
           </button>
         </div>
 
-        {/* 결과 */}
+        {/* Result */}
         {result && (
-          <div style={{
-            background: "white",
-            padding: 20,
-            borderRadius: 10,
-            marginBottom: 20
-          }}>
-            <h3>Performance Score</h3>
+          <div className="bg-white p-6 rounded-xl shadow mb-6">
+            <h3 className="font-semibold mb-4">Performance</h3>
 
-            <h2>{result.score}</h2>
+            <div className="text-3xl font-bold mb-2">{result.score}</div>
 
-            <div style={{
-              height: 10,
-              background: "#ddd",
-              borderRadius: 5
-            }}>
-              <div style={{
-                width: `${result.score}%`,
-                height: "100%",
-                background: "green"
-              }} />
+            <div className="w-full bg-gray-200 h-2 rounded mb-4">
+              <div
+                className="bg-green-500 h-2 rounded"
+                style={{ width: `${result.score}%` }}
+              />
             </div>
 
-            <h4>Strengths</h4>
-            <ul>
+            <h4 className="font-semibold">Strengths</h4>
+            <ul className="list-disc ml-5 mb-4">
               {result.strengths.map((s, i) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
 
-            <h4>Improvements</h4>
-            <ul>
+            <h4 className="font-semibold">Improvements</h4>
+            <ul className="list-disc ml-5">
               {result.improvements.map((i, idx) => (
                 <li key={idx}>{i}</li>
               ))}
@@ -240,34 +177,31 @@ export default function Home() {
           </div>
         )}
 
-        {/* 코치 추천 */}
+        {/* Coaches */}
         {result && (
-          <div style={{
-            background: "white",
-            padding: 20,
-            borderRadius: 10
-          }}>
-            <h3>Recommended Coaches</h3>
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h3 className="font-semibold mb-4">Recommended Coaches</h3>
 
             {matchCoaches().map((coach) => (
-              <div key={coach.id} style={{
-                border: "1px solid #ddd",
-                padding: 10,
-                marginTop: 10,
-                borderRadius: 8
-              }}>
-                <h4>{coach.name}</h4>
-                <p>{coach.specialty}</p>
-                <p>⭐ {coach.rating}</p>
+              <div
+                key={coach.id}
+                className="border p-4 rounded mb-3 flex justify-between items-center"
+              >
+                <div>
+                  <h4 className="font-bold">{coach.name}</h4>
+                  <p className="text-sm text-gray-500">{coach.specialty}</p>
+                </div>
 
-                <button onClick={() => requestCoach(coach)}>
-                  Request Coach
+                <button
+                  className="bg-blue-600 text-white px-3 py-1 rounded"
+                  onClick={() => requestCoach(coach)}
+                >
+                  Request
                 </button>
               </div>
             ))}
           </div>
         )}
-
       </div>
     </div>
   );

@@ -27,6 +27,9 @@ export default function RootLayout({ children }) {
             <Link href="/progress" className="block hover:text-blue-400">
               📈 Progress
             </Link>
+            <Link href="/chat" className="block hover:text-blue-400">
+              💬 Chat
+            </Link>
           </nav>
         </div>
 

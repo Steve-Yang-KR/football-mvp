@@ -1,167 +1,115 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { db, auth } from "../lib/firebase";
+import { useState } from "react";
+import { auth, storage, db } from "../lib/firebase";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
+import { ref, uploadBytes } from "firebase/storage";
 import {
   collection,
   addDoc,
-  query,
-  where,
-  onSnapshot,
-  orderBy,
   serverTimestamp,
 } from "firebase/firestore";
 
-export default function ChatPage() {
-  const [user, setUser] = useState(null);
-  const [rooms, setRooms] = useState([]);
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
+export default function Home() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const bottomRef = useRef(null);
+  // 로그인
+  const login = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("로그인 완료");
+    } catch (e) {
+      alert(e.message);
+    }
+  };
 
-  // 로그인 + 채팅방
-  useEffect(() => {
-    auth.onAuthStateChanged((u) => {
-      if (!u) return;
-      setUser(u);
+  // 회원가입
+  const signUp = async () => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      alert("회원가입 완료");
+    } catch (e) {
+      alert(e.message);
+    }
+  };
 
-      const q = query(
-        collection(db, "chatRooms"),
-        where("userEmail", "==", u.email)
-      );
+  // 업로드
+  const uploadVideo = async (file) => {
+    if (!file) return;
 
-      onSnapshot(q, (snapshot) => {
-        const roomList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setRooms(roomList);
-      });
-    });
-  }, []);
+    const storageRef = ref(storage, `videos/${file.name}`);
+    await uploadBytes(storageRef, file);
 
-  // 메시지
-  useEffect(() => {
-    if (!selectedRoom) return;
+    alert("업로드 완료");
+  };
 
-    const q = query(
-      collection(db, "messages"),
-      where("roomId", "==", selectedRoom.id),
-      orderBy("createdAt", "asc")
-    );
+  // 분석
+  const analyze = async () => {
+    setLoading(true);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map((doc) => doc.data());
-      setMessages(msgs);
-
-      setTimeout(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      body: JSON.stringify({
+        drill: "dribbling",
+        duration: "1 min",
+      }),
     });
 
-    return () => unsubscribe();
-  }, [selectedRoom]);
+    const data = await res.json();
 
-  // 메시지 보내기
-  const sendMessage = async () => {
-    if (!text.trim()) return;
-
-    await addDoc(collection(db, "messages"), {
-      roomId: selectedRoom.id,
-      sender: user.email,
-      text,
+    await addDoc(collection(db, "analysisResults"), {
+      userEmail: email,
+      score: data.result.score,
       createdAt: serverTimestamp(),
     });
 
-    setText("");
+    alert("분석 완료");
+
+    setLoading(false);
   };
 
   return (
-    <div className="flex h-[80vh] gap-4">
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      {/* 채팅방 리스트 */}
-      <div className="w-1/3 bg-white rounded-xl shadow p-4 overflow-y-auto">
-        <h3 className="font-bold mb-4">💬 Chats</h3>
+      {/* Login */}
+      <div className="bg-white p-6 rounded-xl shadow mb-6">
+        <input
+          placeholder="Email"
+          className="border p-2 mr-2"
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          placeholder="Password"
+          type="password"
+          className="border p-2 mr-2"
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-        {rooms.map((room) => (
-          <div
-            key={room.id}
-            onClick={() => setSelectedRoom(room)}
-            className={`p-3 rounded cursor-pointer mb-2 ${
-              selectedRoom?.id === room.id
-                ? "bg-blue-100"
-                : "hover:bg-gray-100"
-            }`}
-          >
-            <div className="font-semibold">{room.coachName}</div>
-            <div className="text-sm text-gray-500">
-              Tap to chat
-            </div>
-          </div>
-        ))}
+        <button onClick={login} className="bg-blue-500 text-white px-3 py-1 mr-2">
+          Login
+        </button>
+
+        <button onClick={signUp} className="bg-gray-500 text-white px-3 py-1">
+          Sign Up
+        </button>
       </div>
 
-      {/* 채팅 영역 */}
-      <div className="flex-1 bg-white rounded-xl shadow flex flex-col">
+      {/* Upload */}
+      <div className="bg-white p-6 rounded-xl shadow">
+        <input type="file" onChange={(e) => uploadVideo(e.target.files[0])} />
 
-        {selectedRoom ? (
-          <>
-            {/* 헤더 */}
-            <div className="p-4 border-b font-bold">
-              {selectedRoom.coachName}
-            </div>
-
-            {/* 메시지 영역 */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {messages.map((m, i) => {
-                const isMe = m.sender === user.email;
-
-                return (
-                  <div
-                    key={i}
-                    className={`flex ${
-                      isMe ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`px-3 py-2 rounded-lg max-w-[70%] ${
-                        isMe
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-black"
-                      }`}
-                    >
-                      {m.text}
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={bottomRef} />
-            </div>
-
-            {/* 입력창 */}
-            <div className="p-3 border-t flex gap-2">
-              <input
-                className="flex-1 border rounded px-3 py-2"
-                placeholder="메시지 입력..."
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              />
-              <button
-                className="bg-blue-600 text-white px-4 rounded"
-                onClick={sendMessage}
-              >
-                전송
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            채팅방을 선택하세요
-          </div>
-        )}
+        <button
+          onClick={analyze}
+          className="ml-2 bg-green-500 text-white px-3 py-1"
+        >
+          {loading ? "Analyzing..." : "Analyze"}
+        </button>
       </div>
     </div>
   );

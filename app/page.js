@@ -10,12 +10,13 @@ import {
 import { ref, uploadBytes } from "firebase/storage";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-// 📊 Chart
+// 🔥 Chart
 import {
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   Radar,
+  ResponsiveContainer,
 } from "recharts";
 
 export default function Home() {
@@ -50,7 +51,7 @@ export default function Home() {
     alert("업로드 완료");
   };
 
-  // AI 분석 (JSON 안정)
+  // AI 분석
   const analyze = async () => {
     setLoading(true);
 
@@ -68,16 +69,16 @@ export default function Home() {
     setLoading(false);
   };
 
-  // 📊 차트 데이터
+  // 🔥 차트 데이터 (항상 숫자 보장)
   const getChartData = () => {
     if (!result) return [];
 
     return [
-      { subject: "Skill", A: result.score },
-      { subject: "Control", A: 75 },
-      { subject: "Speed", A: 70 },
-      { subject: "Stamina", A: 65 },
-      { subject: "Technique", A: 80 },
+      { subject: "Skill", value: Number(result.score) || 0 },
+      { subject: "Control", value: 75 },
+      { subject: "Speed", value: 70 },
+      { subject: "Stamina", value: 65 },
+      { subject: "Technique", value: 80 },
     ];
   };
 
@@ -152,17 +153,11 @@ export default function Home() {
           />
 
           <div className="flex gap-2">
-            <button
-              className="bg-gray-800 text-white px-4 py-2 rounded"
-              onClick={signUp}
-            >
+            <button className="bg-gray-800 text-white px-4 py-2 rounded" onClick={signUp}>
               Sign Up
             </button>
 
-            <button
-              className="bg-blue-600 text-white px-4 py-2 rounded"
-              onClick={login}
-            >
+            <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={login}>
               Login
             </button>
           </div>
@@ -172,10 +167,7 @@ export default function Home() {
         <div className="bg-white p-6 rounded-xl shadow mb-6">
           <h3 className="font-semibold mb-4">Upload Training</h3>
 
-          <input
-            type="file"
-            onChange={(e) => uploadVideo(e.target.files[0])}
-          />
+          <input type="file" onChange={(e) => uploadVideo(e.target.files[0])} />
 
           <button
             className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
@@ -201,22 +193,23 @@ export default function Home() {
               />
             </div>
 
-            {/* Radar Chart */}
-            <div className="flex justify-center mb-6">
-              <RadarChart width={300} height={250} data={getChartData()}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="subject" />
-                <Radar
-                  name="Player"
-                  dataKey="A"
-                  stroke="#2563eb"
-                  fill="#3b82f6"
-                  fillOpacity={0.6}
-                />
-              </RadarChart>
+            {/* 🔥 차트 (Responsive로 확실히 표시) */}
+            <div className="w-full h-[250px]">
+              <ResponsiveContainer>
+                <RadarChart data={getChartData()}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="subject" />
+                  <Radar
+                    dataKey="value"
+                    stroke="#2563eb"
+                    fill="#3b82f6"
+                    fillOpacity={0.6}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
             </div>
 
-            <h4 className="font-semibold">Strengths</h4>
+            <h4 className="font-semibold mt-6">Strengths</h4>
             <ul className="list-disc ml-5 mb-4">
               {result.strengths.map((s, i) => (
                 <li key={i}>{s}</li>
@@ -244,9 +237,7 @@ export default function Home() {
               >
                 <div>
                   <h4 className="font-bold">{coach.name}</h4>
-                  <p className="text-sm text-gray-500">
-                    {coach.specialty}
-                  </p>
+                  <p className="text-sm text-gray-500">{coach.specialty}</p>
                 </div>
 
                 <button
@@ -259,7 +250,6 @@ export default function Home() {
             ))}
           </div>
         )}
-
       </div>
     </div>
   );

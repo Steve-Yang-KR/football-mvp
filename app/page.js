@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { auth, storage, db } from "../lib/firebase";
 import {
   signInWithEmailAndPassword,
@@ -78,11 +77,9 @@ export default function Home() {
       });
 
       const data = await res.json();
-
-      // 결과 세팅
       setResult(data.result);
 
-      // 🔥 분석 결과 저장
+      // 🔥 결과 저장
       await addDoc(collection(db, "analysisResults"), {
         userEmail: email,
         score: data.result.score,
@@ -146,145 +143,135 @@ export default function Home() {
   };
 
   return (
-    
-      {/* Sidebar */}
-      <div className="w-60 bg-gray-900 text-white p-6">
-        <h2 className="text-xl font-bold mb-6">⚽ AI Football</h2>
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-        <nav className="space-y-4">
-          <p className="text-gray-300">Dashboard</p>
+      {/* Login */}
+      <div className="bg-white p-6 rounded-xl shadow mb-6">
+        <h3 className="font-semibold mb-4">Login</h3>
 
-          <Link href="/requests" className="block hover:text-blue-400">
-            📋 Requests
-          </Link>
+        <input
+          className="w-full border p-2 rounded mb-2"
+          placeholder="Email"
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-          <Link href="/progress" className="block hover:text-blue-400">
-            📈 Progress
-          </Link>
-        </nav>
-      </div>
+        <input
+          className="w-full border p-2 rounded mb-3"
+          type="password"
+          placeholder="Password"
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-      {/* Main */}
-      <div className="flex-1 p-8">
-
-        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-
-        {/* Login */}
-        <div className="bg-white p-6 rounded-xl shadow mb-6">
-          <h3 className="font-semibold mb-4">Login</h3>
-
-          <input
-            className="w-full border p-2 rounded mb-2"
-            placeholder="Email"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <input
-            className="w-full border p-2 rounded mb-3"
-            type="password"
-            placeholder="Password"
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <div className="flex gap-2">
-            <button className="bg-gray-800 text-white px-4 py-2 rounded" onClick={signUp}>
-              Sign Up
-            </button>
-
-            <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={login}>
-              Login
-            </button>
-          </div>
-        </div>
-
-        {/* Upload */}
-        <div className="bg-white p-6 rounded-xl shadow mb-6">
-          <h3 className="font-semibold mb-4">Upload Training</h3>
-
-          <input type="file" onChange={(e) => uploadVideo(e.target.files[0])} />
+        <div className="flex gap-2">
+          <button
+            className="bg-gray-800 text-white px-4 py-2 rounded"
+            onClick={signUp}
+          >
+            Sign Up
+          </button>
 
           <button
-            className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
-            onClick={analyze}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+            onClick={login}
           >
-            {loading ? "Analyzing..." : "Run AI Analysis"}
+            Login
           </button>
         </div>
-
-        {/* Result + Chart */}
-        {result && (
-          <div className="bg-white p-6 rounded-xl shadow mb-6">
-            <h3 className="font-semibold mb-4">Performance Overview</h3>
-
-            <div className="text-4xl font-bold text-green-600 mb-4">
-              {result.score}
-            </div>
-
-            <div className="w-full bg-gray-200 h-3 rounded mb-6">
-              <div
-                className="bg-green-500 h-3 rounded"
-                style={{ width: `${result.score}%` }}
-              />
-            </div>
-
-            {/* Radar Chart */}
-            <div className="w-full h-[250px]">
-              <ResponsiveContainer>
-                <RadarChart data={getChartData()}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="subject" />
-                  <Radar
-                    dataKey="value"
-                    stroke="#2563eb"
-                    fill="#3b82f6"
-                    fillOpacity={0.6}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <h4 className="font-semibold mt-6">Strengths</h4>
-            <ul className="list-disc ml-5 mb-4">
-              {result.strengths.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
-
-            <h4 className="font-semibold">Improvements</h4>
-            <ul className="list-disc ml-5">
-              {result.improvements.map((i, idx) => (
-                <li key={idx}>{i}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Coaches */}
-        {result && (
-          <div className="bg-white p-6 rounded-xl shadow">
-            <h3 className="font-semibold mb-4">Recommended Coaches</h3>
-
-            {matchCoaches().map((coach) => (
-              <div
-                key={coach.id}
-                className="border p-4 rounded mb-3 flex justify-between items-center"
-              >
-                <div>
-                  <h4 className="font-bold">{coach.name}</h4>
-                  <p className="text-sm text-gray-500">{coach.specialty}</p>
-                </div>
-
-                <button
-                  className="bg-blue-600 text-white px-3 py-1 rounded"
-                  onClick={() => requestCoach(coach)}
-                >
-                  Request
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
       </div>
+
+      {/* Upload */}
+      <div className="bg-white p-6 rounded-xl shadow mb-6">
+        <h3 className="font-semibold mb-4">Upload Training</h3>
+
+        <input
+          type="file"
+          onChange={(e) => uploadVideo(e.target.files[0])}
+        />
+
+        <button
+          className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
+          onClick={analyze}
+        >
+          {loading ? "Analyzing..." : "Run AI Analysis"}
+        </button>
+      </div>
+
+      {/* Result */}
+      {result && (
+        <div className="bg-white p-6 rounded-xl shadow mb-6">
+          <h3 className="font-semibold mb-4">Performance Overview</h3>
+
+          <div className="text-4xl font-bold text-green-600 mb-4">
+            {result.score}
+          </div>
+
+          <div className="w-full bg-gray-200 h-3 rounded mb-6">
+            <div
+              className="bg-green-500 h-3 rounded"
+              style={{ width: `${result.score}%` }}
+            />
+          </div>
+
+          {/* Radar Chart */}
+          <div className="w-full h-[250px]">
+            <ResponsiveContainer>
+              <RadarChart data={getChartData()}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="subject" />
+                <Radar
+                  dataKey="value"
+                  stroke="#2563eb"
+                  fill="#3b82f6"
+                  fillOpacity={0.6}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <h4 className="font-semibold mt-6">Strengths</h4>
+          <ul className="list-disc ml-5 mb-4">
+            {result.strengths.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+
+          <h4 className="font-semibold">Improvements</h4>
+          <ul className="list-disc ml-5">
+            {result.improvements.map((i, idx) => (
+              <li key={idx}>{i}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Coaches */}
+      {result && (
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="font-semibold mb-4">Recommended Coaches</h3>
+
+          {matchCoaches().map((coach) => (
+            <div
+              key={coach.id}
+              className="border p-4 rounded mb-3 flex justify-between items-center"
+            >
+              <div>
+                <h4 className="font-bold">{coach.name}</h4>
+                <p className="text-sm text-gray-500">
+                  {coach.specialty}
+                </p>
+              </div>
+
+              <button
+                className="bg-blue-600 text-white px-3 py-1 rounded"
+                onClick={() => requestCoach(coach)}
+              >
+                Request
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -50,3 +50,15 @@ export default function Home() {
     </div>
   );
 }
+
+import { ref, uploadBytes } from "firebase/storage";
+import { storage } from "../lib/firebase";
+
+const uploadVideo = async (file) => {
+  if (!file) return;
+
+  const storageRef = ref(storage, `videos/${file.name}`);
+  await uploadBytes(storageRef, file);
+
+  alert("업로드 성공!");
+};

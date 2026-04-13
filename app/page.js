@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { auth, storage, db } from "../lib/firebase";
 import {
   signInWithEmailAndPassword,
@@ -55,7 +56,7 @@ export default function Home() {
     }
   };
 
-  // AI 분석
+  // AI 분석 (🔥 안전 처리 포함)
   const analyze = async () => {
     setLoading(true);
 
@@ -69,7 +70,17 @@ export default function Home() {
       });
 
       const data = await res.json();
-      const parsed = JSON.parse(data.result);
+
+      let parsed;
+
+      try {
+        parsed = JSON.parse(data.result);
+      } catch (e) {
+        console.log("🔥 원본 AI 응답:", data.result);
+        alert("AI 응답 파싱 실패 (콘솔 확인)");
+        setLoading(false);
+        return;
+      }
 
       setResult(parsed);
     } catch (e) {
@@ -99,7 +110,7 @@ export default function Home() {
       .slice(0, 2);
   };
 
-  // 🔥 코치 요청 저장 (핵심)
+  // 코치 요청 저장
   const requestCoach = async (coach) => {
     try {
       await addDoc(collection(db, "coachRequests"), {
@@ -225,6 +236,13 @@ export default function Home() {
           ))}
         </div>
       )}
+
+      <br /><br />
+
+      {/* 요청 리스트 이동 */}
+      <Link href="/requests">
+        <button>📋 코치 요청 리스트 보기</button>
+      </Link>
     </div>
   );
 }

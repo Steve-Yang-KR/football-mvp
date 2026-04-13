@@ -48,6 +48,11 @@ export default function Home() {
       <button onClick={signUp}>회원가입</button>
       <button onClick={login}>로그인</button>
     </div>
+    <input
+      type="file"
+      accept="video/*"
+      onChange={(e) => uploadVideo(e.target.files[0])}
+    />    
   );
 }
 

@@ -47,7 +47,9 @@ export default function ProgressPage() {
           score: d.score,
         };
       });
-
+      
+      console.log("데이터:", result);
+      
       setData(result);
     });
   }, []);

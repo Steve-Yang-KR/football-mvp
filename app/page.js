@@ -13,20 +13,26 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
+// 📊 Chart
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
+  ResponsiveContainer,
+} from "recharts";
+
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 로그인
-  const login = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      alert("로그인 완료");
-    } catch (e) {
-      alert(e.message);
-    }
-  };
+  const coaches = [
+    { id: 1, name: "Carlos", specialty: "dribbling", rating: 4.8 },
+    { id: 2, name: "David", specialty: "speed", rating: 4.6 },
+    { id: 3, name: "Lee", specialty: "ball control", rating: 4.9 },
+  ];
 
   // 회원가입
   const signUp = async () => {
@@ -38,39 +44,115 @@ export default function Home() {
     }
   };
 
-  // 업로드
+  // 로그인
+  const login = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("로그인 완료");
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  // 영상 업로드
   const uploadVideo = async (file) => {
     if (!file) return;
 
-    const storageRef = ref(storage, `videos/${file.name}`);
-    await uploadBytes(storageRef, file);
-
-    alert("업로드 완료");
+    try {
+      const storageRef = ref(storage, `videos/${file.name}`);
+      await uploadBytes(storageRef, file);
+      alert("업로드 완료");
+    } catch (e) {
+      alert("업로드 실패");
+    }
   };
 
-  // 분석
+  // AI 분석 + 저장
   const analyze = async () => {
     setLoading(true);
 
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      body: JSON.stringify({
-        drill: "dribbling",
-        duration: "1 min",
-      }),
-    });
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: JSON.stringify({
+          drill: "dribbling",
+          duration: "1 min",
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
+      setResult(data.result);
 
-    await addDoc(collection(db, "analysisResults"), {
-      userEmail: email,
-      score: data.result.score,
-      createdAt: serverTimestamp(),
-    });
+      // 🔥 분석 결과 저장
+      await addDoc(collection(db, "analysisResults"), {
+        userEmail: email,
+        score: data.result.score,
+        createdAt: serverTimestamp(),
+      });
 
-    alert("분석 완료");
+    } catch (e) {
+      alert("AI 분석 실패");
+    }
 
     setLoading(false);
+  };
+
+  // 📊 차트 데이터
+  const getChartData = () => {
+    if (!result) return [];
+
+    return [
+      { subject: "Skill", value: Number(result.score) || 0 },
+      { subject: "Control", value: 75 },
+      { subject: "Speed", value: 70 },
+      { subject: "Stamina", value: 65 },
+      { subject: "Technique", value: 80 },
+    ];
+  };
+
+  // 코치 매칭
+  const matchCoaches = () => {
+    if (!result) return [];
+
+    return coaches
+      .map((coach) => {
+        let score = coach.rating * 10;
+
+        if (result.improvements.join(" ").includes(coach.specialty)) {
+          score += 50;
+        }
+
+        return { ...coach, matchScore: score };
+      })
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 2);
+  };
+
+  // ✅ 코치 요청 + 채팅방 생성 (🔥 하나만 존재)
+  const requestCoach = async (coach) => {
+    try {
+      // 1. 요청 저장
+      const docRef = await addDoc(collection(db, "coachRequests"), {
+        coachName: coach.name,
+        specialty: coach.specialty,
+        rating: coach.rating,
+        userEmail: email,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+
+      // 2. 채팅방 생성
+      await addDoc(collection(db, "chatRooms"), {
+        requestId: docRef.id,
+        userEmail: email,
+        coachName: coach.name,
+        createdAt: serverTimestamp(),
+      });
+
+      alert("코치 요청 + 채팅방 생성 완료!");
+    } catch (e) {
+      alert("요청 실패");
+    }
   };
 
   return (
@@ -79,38 +161,129 @@ export default function Home() {
 
       {/* Login */}
       <div className="bg-white p-6 rounded-xl shadow mb-6">
+        <h3 className="font-semibold mb-4">Login</h3>
+
         <input
+          className="w-full border p-2 rounded mb-2"
           placeholder="Email"
-          className="border p-2 mr-2"
           onChange={(e) => setEmail(e.target.value)}
         />
+
         <input
-          placeholder="Password"
+          className="w-full border p-2 rounded mb-3"
           type="password"
-          className="border p-2 mr-2"
+          placeholder="Password"
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button onClick={login} className="bg-blue-500 text-white px-3 py-1 mr-2">
-          Login
-        </button>
+        <div className="flex gap-2">
+          <button
+            className="bg-gray-800 text-white px-4 py-2 rounded"
+            onClick={signUp}
+          >
+            Sign Up
+          </button>
 
-        <button onClick={signUp} className="bg-gray-500 text-white px-3 py-1">
-          Sign Up
-        </button>
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+            onClick={login}
+          >
+            Login
+          </button>
+        </div>
       </div>
 
       {/* Upload */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        <input type="file" onChange={(e) => uploadVideo(e.target.files[0])} />
+      <div className="bg-white p-6 rounded-xl shadow mb-6">
+        <h3 className="font-semibold mb-4">Upload Training</h3>
+
+        <input
+          type="file"
+          onChange={(e) => uploadVideo(e.target.files[0])}
+        />
 
         <button
+          className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
           onClick={analyze}
-          className="ml-2 bg-green-500 text-white px-3 py-1"
         >
-          {loading ? "Analyzing..." : "Analyze"}
+          {loading ? "Analyzing..." : "Run AI Analysis"}
         </button>
       </div>
+
+      {/* Result */}
+      {result && (
+        <div className="bg-white p-6 rounded-xl shadow mb-6">
+          <h3 className="font-semibold mb-4">Performance Overview</h3>
+
+          <div className="text-4xl font-bold text-green-600 mb-4">
+            {result.score}
+          </div>
+
+          <div className="w-full bg-gray-200 h-3 rounded mb-6">
+            <div
+              className="bg-green-500 h-3 rounded"
+              style={{ width: `${result.score}%` }}
+            />
+          </div>
+
+          <div className="w-full h-[250px]">
+            <ResponsiveContainer>
+              <RadarChart data={getChartData()}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="subject" />
+                <Radar
+                  dataKey="value"
+                  stroke="#2563eb"
+                  fill="#3b82f6"
+                  fillOpacity={0.6}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <h4 className="font-semibold mt-6">Strengths</h4>
+          <ul className="list-disc ml-5 mb-4">
+            {result.strengths.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+
+          <h4 className="font-semibold">Improvements</h4>
+          <ul className="list-disc ml-5">
+            {result.improvements.map((i, idx) => (
+              <li key={idx}>{i}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Coaches */}
+      {result && (
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="font-semibold mb-4">Recommended Coaches</h3>
+
+          {matchCoaches().map((coach) => (
+            <div
+              key={coach.id}
+              className="border p-4 rounded mb-3 flex justify-between items-center"
+            >
+              <div>
+                <h4 className="font-bold">{coach.name}</h4>
+                <p className="text-sm text-gray-500">
+                  {coach.specialty}
+                </p>
+              </div>
+
+              <button
+                className="bg-blue-600 text-white px-3 py-1 rounded"
+                onClick={() => requestCoach(coach)}
+              >
+                Request
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

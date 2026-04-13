@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { auth, storage } from "../lib/firebase";
+import { auth, storage, db } from "../lib/firebase";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { ref, uploadBytes } from "firebase/storage";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -14,26 +15,11 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ✅ 코치 데이터 (MVP)
+  // 코치 데이터
   const coaches = [
-    {
-      id: 1,
-      name: "Carlos",
-      specialty: "dribbling",
-      rating: 4.8,
-    },
-    {
-      id: 2,
-      name: "David",
-      specialty: "speed",
-      rating: 4.6,
-    },
-    {
-      id: 3,
-      name: "Lee",
-      specialty: "ball control",
-      rating: 4.9,
-    },
+    { id: 1, name: "Carlos", specialty: "dribbling", rating: 4.8 },
+    { id: 2, name: "David", specialty: "speed", rating: 4.6 },
+    { id: 3, name: "Lee", specialty: "ball control", rating: 4.9 },
   ];
 
   // 회원가입
@@ -93,7 +79,7 @@ export default function Home() {
     setLoading(false);
   };
 
-  // 🎯 코치 매칭 로직
+  // 코치 매칭
   const matchCoaches = () => {
     if (!result) return [];
 
@@ -111,6 +97,23 @@ export default function Home() {
       })
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 2);
+  };
+
+  // 🔥 코치 요청 저장 (핵심)
+  const requestCoach = async (coach) => {
+    try {
+      await addDoc(collection(db, "coachRequests"), {
+        coachName: coach.name,
+        specialty: coach.specialty,
+        rating: coach.rating,
+        userEmail: email,
+        createdAt: serverTimestamp(),
+      });
+
+      alert("코치 요청 완료!");
+    } catch (e) {
+      alert("요청 실패: " + e.message);
+    }
   };
 
   return (
@@ -158,35 +161,28 @@ export default function Home() {
 
       {/* AI 결과 */}
       {result && (
-        <div
-          style={{
-            marginTop: 20,
-            padding: 20,
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            background: "#f9f9f9",
-          }}
-        >
+        <div style={{
+          marginTop: 20,
+          padding: 20,
+          border: "1px solid #ddd",
+          borderRadius: 10,
+          background: "#f9f9f9"
+        }}>
           <h2>⚽ AI 분석 결과</h2>
 
           <h3>점수: {result.score}</h3>
 
-          <div
-            style={{
-              height: 10,
-              background: "#eee",
-              borderRadius: 5,
-              overflow: "hidden",
-              marginBottom: 10,
-            }}
-          >
-            <div
-              style={{
-                width: `${result.score}%`,
-                height: "100%",
-                background: "green",
-              }}
-            />
+          <div style={{
+            height: 10,
+            background: "#eee",
+            borderRadius: 5,
+            overflow: "hidden"
+          }}>
+            <div style={{
+              width: `${result.score}%`,
+              height: "100%",
+              background: "green"
+            }} />
           </div>
 
           <h4>✅ 강점</h4>
@@ -205,28 +201,26 @@ export default function Home() {
         </div>
       )}
 
-      {/* 🎯 코치 추천 */}
+      {/* 코치 추천 */}
       {result && (
         <div style={{ marginTop: 20 }}>
           <h2>🎯 추천 코치</h2>
 
           {matchCoaches().map((coach) => (
-            <div
-              key={coach.id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: 10,
-                padding: 15,
-                marginTop: 10,
-                background: "#fff",
-              }}
-            >
+            <div key={coach.id} style={{
+              border: "1px solid #ddd",
+              borderRadius: 10,
+              padding: 15,
+              marginTop: 10
+            }}>
               <h3>{coach.name}</h3>
               <p>전문 분야: {coach.specialty}</p>
               <p>평점: ⭐ {coach.rating}</p>
               <p>매칭 점수: {coach.matchScore}</p>
 
-              <button>코치 요청</button>
+              <button onClick={() => requestCoach(coach)}>
+                코치 요청
+              </button>
             </div>
           ))}
         </div>

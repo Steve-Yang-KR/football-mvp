@@ -55,7 +55,6 @@ export default function ProgressPage() {
   }, []);
 
   return (
-    <div className="p-8">
       <h1 className="text-2xl font-bold mb-6">📈 My Progress</h1>
 
       {data.length === 0 && <p>No data yet</p>}
@@ -78,6 +77,5 @@ export default function ProgressPage() {
           </ResponsiveContainer>
         </div>
       )}
-    </div>
   );
 }

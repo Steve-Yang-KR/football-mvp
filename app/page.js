@@ -11,6 +11,7 @@ import { ref, uploadBytes } from "firebase/storage";
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [result, setResult] = useState("");
 
   // 회원가입
   const signUp = async () => {
@@ -45,11 +46,24 @@ export default function Home() {
     }
   };
 
+  // AI 분석
+  const analyze = async () => {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      body: JSON.stringify({
+        drill: "dribbling",
+        duration: "1 min",
+      }),
+    });
+
+    const data = await res.json();
+    setResult(data.result);
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h1>⚽ AI Football App</h1>
 
-      {/* 이메일 */}
       <input
         placeholder="email"
         value={email}
@@ -57,7 +71,6 @@ export default function Home() {
       />
       <br /><br />
 
-      {/* 비밀번호 */}
       <input
         type="password"
         placeholder="password"
@@ -66,18 +79,22 @@ export default function Home() {
       />
       <br /><br />
 
-      {/* 버튼 */}
       <button onClick={signUp}>회원가입</button>
       <button onClick={login}>로그인</button>
 
       <br /><br />
 
-      {/* 영상 업로드 */}
       <input
         type="file"
         accept="video/*"
         onChange={(e) => uploadVideo(e.target.files[0])}
       />
+
+      <br /><br />
+
+      <button onClick={analyze}>AI 분석</button>
+
+      <pre>{result}</pre>
     </div>
   );
 }

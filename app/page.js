@@ -22,79 +22,109 @@ export default function Home() {
     { id: 3, name: "Lee", specialty: "ball control", rating: 4.9 },
   ];
 
+  // 회원가입
   const signUp = async () => {
-    await createUserWithEmailAndPassword(auth, email, password);
-    alert("회원가입 완료");
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      alert("회원가입 완료");
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
+  // 로그인
   const login = async () => {
-    await signInWithEmailAndPassword(auth, email, password);
-    alert("로그인 완료");
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("로그인 완료");
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
+  // 영상 업로드
   const uploadVideo = async (file) => {
     if (!file) return;
-    const storageRef = ref(storage, `videos/${file.name}`);
-    await uploadBytes(storageRef, file);
-    alert("업로드 완료");
+
+    try {
+      const storageRef = ref(storage, `videos/${file.name}`);
+      await uploadBytes(storageRef, file);
+      alert("업로드 완료");
+    } catch (e) {
+      alert("업로드 실패");
+    }
   };
 
+  // AI 분석 (🔥 JSON 안전 - parse 필요 없음)
   const analyze = async () => {
     setLoading(true);
 
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      body: JSON.stringify({
-        drill: "dribbling",
-        duration: "1 min",
-      }),
-    });
-
-    const data = await res.json();
-
     try {
-      setResult(JSON.parse(data.result));
-    } catch {
-      alert("AI 응답 오류");
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: JSON.stringify({
+          drill: "dribbling",
+          duration: "1 min",
+        }),
+      });
+
+      const data = await res.json();
+
+      // ✅ 그대로 사용 (이미 JSON)
+      setResult(data.result);
+    } catch (e) {
+      alert("AI 분석 실패");
     }
 
     setLoading(false);
   };
 
+  // 코치 매칭
   const matchCoaches = () => {
     if (!result) return [];
 
     return coaches
-      .map((c) => ({
-        ...c,
-        matchScore: c.rating * 10,
-      }))
+      .map((coach) => {
+        let score = coach.rating * 10;
+
+        if (result.improvements.join(" ").includes(coach.specialty)) {
+          score += 50;
+        }
+
+        return { ...coach, matchScore: score };
+      })
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 2);
   };
 
+  // 코치 요청
   const requestCoach = async (coach) => {
-    await addDoc(collection(db, "coachRequests"), {
-      coachName: coach.name,
-      specialty: coach.specialty,
-      rating: coach.rating,
-      userEmail: email,
-      status: "pending",
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await addDoc(collection(db, "coachRequests"), {
+        coachName: coach.name,
+        specialty: coach.specialty,
+        rating: coach.rating,
+        userEmail: email,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
 
-    alert("요청 완료!");
+      alert("코치 요청 완료!");
+    } catch (e) {
+      alert("요청 실패");
+    }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-100">
 
       {/* Sidebar */}
-      <div className="w-60 bg-gray-900 text-white p-5">
+      <div className="w-60 bg-gray-900 text-white p-6">
         <h2 className="text-xl font-bold mb-6">⚽ AI Football</h2>
 
         <nav className="space-y-4">
           <p className="text-gray-300">Dashboard</p>
+
           <Link href="/requests" className="block hover:text-blue-400">
             📋 Requests
           </Link>
@@ -106,7 +136,7 @@ export default function Home() {
 
         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-        {/* Login Card */}
+        {/* Login */}
         <div className="bg-white p-6 rounded-xl shadow mb-6">
           <h3 className="font-semibold mb-4">Login</h3>
 
@@ -124,10 +154,17 @@ export default function Home() {
           />
 
           <div className="flex gap-2">
-            <button className="bg-gray-800 text-white px-4 py-2 rounded" onClick={signUp}>
+            <button
+              className="bg-gray-800 text-white px-4 py-2 rounded"
+              onClick={signUp}
+            >
               Sign Up
             </button>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={login}>
+
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+              onClick={login}
+            >
               Login
             </button>
           </div>
@@ -137,7 +174,10 @@ export default function Home() {
         <div className="bg-white p-6 rounded-xl shadow mb-6">
           <h3 className="font-semibold mb-4">Upload Training</h3>
 
-          <input type="file" onChange={(e) => uploadVideo(e.target.files[0])} />
+          <input
+            type="file"
+            onChange={(e) => uploadVideo(e.target.files[0])}
+          />
 
           <button
             className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
@@ -189,7 +229,9 @@ export default function Home() {
               >
                 <div>
                   <h4 className="font-bold">{coach.name}</h4>
-                  <p className="text-sm text-gray-500">{coach.specialty}</p>
+                  <p className="text-sm text-gray-500">
+                    {coach.specialty}
+                  </p>
                 </div>
 
                 <button

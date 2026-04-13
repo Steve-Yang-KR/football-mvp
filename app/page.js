@@ -7,7 +7,11 @@ import {
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { ref, uploadBytes } from "firebase/storage";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
 // 📊 Chart
 import {
@@ -79,7 +83,7 @@ export default function Home() {
       const data = await res.json();
       setResult(data.result);
 
-      // 🔥 결과 저장
+      // 🔥 분석 결과 저장
       await addDoc(collection(db, "analysisResults"), {
         userEmail: email,
         score: data.result.score,
@@ -124,24 +128,7 @@ export default function Home() {
       .slice(0, 2);
   };
 
-  // 코치 요청
-  const requestCoach = async (coach) => {
-    try {
-      await addDoc(collection(db, "coachRequests"), {
-        coachName: coach.name,
-        specialty: coach.specialty,
-        rating: coach.rating,
-        userEmail: email,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-
-      alert("코치 요청 완료!");
-    } catch (e) {
-      alert("요청 실패");
-    }
-  };
-  
+  // ✅ 코치 요청 + 채팅방 생성 (🔥 하나만 존재)
   const requestCoach = async (coach) => {
     try {
       // 1. 요청 저장
@@ -153,7 +140,7 @@ export default function Home() {
         status: "pending",
         createdAt: serverTimestamp(),
       });
-  
+
       // 2. 채팅방 생성
       await addDoc(collection(db, "chatRooms"), {
         requestId: docRef.id,
@@ -161,14 +148,13 @@ export default function Home() {
         coachName: coach.name,
         createdAt: serverTimestamp(),
       });
-  
+
       alert("코치 요청 + 채팅방 생성 완료!");
-  
     } catch (e) {
       alert("요청 실패");
     }
   };
-    
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
@@ -240,7 +226,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Radar Chart */}
           <div className="w-full h-[250px]">
             <ResponsiveContainer>
               <RadarChart data={getChartData()}>

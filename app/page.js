@@ -11,7 +11,8 @@ import { ref, uploadBytes } from "firebase/storage";
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // 회원가입
   const signUp = async () => {
@@ -48,26 +49,40 @@ export default function Home() {
 
   // AI 분석
   const analyze = async () => {
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      body: JSON.stringify({
-        drill: "dribbling",
-        duration: "1 min",
-      }),
-    });
+    setLoading(true);
 
-    const data = await res.json();
-    setResult(data.result);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: JSON.stringify({
+          drill: "dribbling",
+          duration: "1 min",
+        }),
+      });
+
+      const data = await res.json();
+
+      // JSON 파싱
+      const parsed = JSON.parse(data.result);
+
+      setResult(parsed);
+    } catch (e) {
+      alert("AI 분석 실패: " + e.message);
+    }
+
+    setLoading(false);
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, maxWidth: 500, margin: "auto" }}>
       <h1>⚽ AI Football App</h1>
 
+      {/* 로그인 */}
       <input
         placeholder="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        style={{ width: "100%", padding: 8 }}
       />
       <br /><br />
 
@@ -76,14 +91,16 @@ export default function Home() {
         placeholder="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        style={{ width: "100%", padding: 8 }}
       />
       <br /><br />
 
       <button onClick={signUp}>회원가입</button>
-      <button onClick={login}>로그인</button>
+      <button onClick={login} style={{ marginLeft: 10 }}>로그인</button>
 
       <br /><br />
 
+      {/* 영상 업로드 */}
       <input
         type="file"
         accept="video/*"
@@ -92,9 +109,57 @@ export default function Home() {
 
       <br /><br />
 
-      <button onClick={analyze}>AI 분석</button>
+      {/* AI 분석 */}
+      <button onClick={analyze} disabled={loading}>
+        {loading ? "AI 분석 중..." : "AI 분석"}
+      </button>
 
-      <pre>{result}</pre>
+      {/* 결과 UI */}
+      {result && (
+        <div style={{
+          marginTop: 20,
+          padding: 20,
+          border: "1px solid #ddd",
+          borderRadius: 10,
+          background: "#f9f9f9"
+        }}>
+          <h2>⚽ AI 분석 결과</h2>
+
+          {/* 점수 */}
+          <h3>점수: {result.score}</h3>
+
+          {/* 프로그레스 바 */}
+          <div style={{
+            height: 10,
+            background: "#eee",
+            borderRadius: 5,
+            overflow: "hidden",
+            marginBottom: 10
+          }}>
+            <div style={{
+              width: `${result.score}%`,
+              height: "100%",
+              background: "green"
+            }} />
+          </div>
+
+          {/* 강점 */}
+          <h4>✅ 강점</h4>
+          <ul>
+            {result.strengths.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+
+          {/* 개선점 */}
+          <h4>⚠️ 개선점</h4>
+          <ul>
+            {result.improvements.map((i, idx) => (
+              <li key={idx}>{i}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

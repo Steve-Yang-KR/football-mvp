@@ -141,7 +141,34 @@ export default function Home() {
       alert("요청 실패");
     }
   };
-
+  
+  const requestCoach = async (coach) => {
+    try {
+      // 1. 요청 저장
+      const docRef = await addDoc(collection(db, "coachRequests"), {
+        coachName: coach.name,
+        specialty: coach.specialty,
+        rating: coach.rating,
+        userEmail: email,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+  
+      // 2. 채팅방 생성
+      await addDoc(collection(db, "chatRooms"), {
+        requestId: docRef.id,
+        userEmail: email,
+        coachName: coach.name,
+        createdAt: serverTimestamp(),
+      });
+  
+      alert("코치 요청 + 채팅방 생성 완료!");
+  
+    } catch (e) {
+      alert("요청 실패");
+    }
+  };
+    
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>

@@ -13,6 +13,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
+import { calculateSimilarity } from "../lib/similarity";
+
 // 📊 Chart
 import {
   RadarChart,
@@ -26,13 +28,8 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [result, setResult] = useState(null);
+  const [similarity, setSimilarity] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const coaches = [
-    { id: 1, name: "Carlos", specialty: "dribbling", rating: 4.8 },
-    { id: 2, name: "David", specialty: "speed", rating: 4.6 },
-    { id: 3, name: "Lee", specialty: "ball control", rating: 4.9 },
-  ];
 
   // 회원가입
   const signUp = async () => {
@@ -67,7 +64,7 @@ export default function Home() {
     }
   };
 
-  // AI 분석 + 저장
+  // AI 분석
   const analyze = async () => {
     setLoading(true);
 
@@ -76,14 +73,18 @@ export default function Home() {
         method: "POST",
         body: JSON.stringify({
           drill: "dribbling",
-          duration: "1 min",
         }),
       });
 
       const data = await res.json();
+
       setResult(data.result);
 
-      // 🔥 분석 결과 저장
+      // 🔥 유사도 계산
+      const sim = calculateSimilarity(data.result.styleData);
+      setSimilarity(sim);
+
+      // 🔥 DB 저장
       await addDoc(collection(db, "analysisResults"), {
         userEmail: email,
         score: data.result.score,
@@ -102,57 +103,10 @@ export default function Home() {
     if (!result) return [];
 
     return [
-      { subject: "Skill", value: Number(result.score) || 0 },
-      { subject: "Control", value: 75 },
-      { subject: "Speed", value: 70 },
-      { subject: "Stamina", value: 65 },
-      { subject: "Technique", value: 80 },
+      { subject: "Speed", value: result.styleData?.dribblingSpeed || 0 },
+      { subject: "Control", value: result.styleData?.control || 0 },
+      { subject: "Agility", value: result.styleData?.agility || 0 },
     ];
-  };
-
-  // 코치 매칭
-  const matchCoaches = () => {
-    if (!result) return [];
-
-    return coaches
-      .map((coach) => {
-        let score = coach.rating * 10;
-
-        if (result.improvements.join(" ").includes(coach.specialty)) {
-          score += 50;
-        }
-
-        return { ...coach, matchScore: score };
-      })
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 2);
-  };
-
-  // ✅ 코치 요청 + 채팅방 생성 (🔥 하나만 존재)
-  const requestCoach = async (coach) => {
-    try {
-      // 1. 요청 저장
-      const docRef = await addDoc(collection(db, "coachRequests"), {
-        coachName: coach.name,
-        specialty: coach.specialty,
-        rating: coach.rating,
-        userEmail: email,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-
-      // 2. 채팅방 생성
-      await addDoc(collection(db, "chatRooms"), {
-        requestId: docRef.id,
-        userEmail: email,
-        coachName: coach.name,
-        createdAt: serverTimestamp(),
-      });
-
-      alert("코치 요청 + 채팅방 생성 완료!");
-    } catch (e) {
-      alert("요청 실패");
-    }
   };
 
   return (
@@ -161,72 +115,49 @@ export default function Home() {
 
       {/* Login */}
       <div className="bg-white p-6 rounded-xl shadow mb-6">
-        <h3 className="font-semibold mb-4">Login</h3>
-
         <input
-          className="w-full border p-2 rounded mb-2"
           placeholder="Email"
+          className="border p-2 mr-2"
           onChange={(e) => setEmail(e.target.value)}
         />
-
         <input
-          className="w-full border p-2 rounded mb-3"
-          type="password"
           placeholder="Password"
+          type="password"
+          className="border p-2 mr-2"
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <div className="flex gap-2">
-          <button
-            className="bg-gray-800 text-white px-4 py-2 rounded"
-            onClick={signUp}
-          >
-            Sign Up
-          </button>
+        <button onClick={login} className="bg-blue-500 text-white px-3 py-1 mr-2">
+          Login
+        </button>
 
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={login}
-          >
-            Login
-          </button>
-        </div>
+        <button onClick={signUp} className="bg-gray-500 text-white px-3 py-1">
+          Sign Up
+        </button>
       </div>
 
       {/* Upload */}
       <div className="bg-white p-6 rounded-xl shadow mb-6">
-        <h3 className="font-semibold mb-4">Upload Training</h3>
-
-        <input
-          type="file"
-          onChange={(e) => uploadVideo(e.target.files[0])}
-        />
+        <input type="file" onChange={(e) => uploadVideo(e.target.files[0])} />
 
         <button
-          className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
           onClick={analyze}
+          className="ml-2 bg-green-500 text-white px-3 py-1"
         >
-          {loading ? "Analyzing..." : "Run AI Analysis"}
+          {loading ? "Analyzing..." : "Analyze"}
         </button>
       </div>
 
-      {/* Result */}
+      {/* 결과 */}
       {result && (
         <div className="bg-white p-6 rounded-xl shadow mb-6">
-          <h3 className="font-semibold mb-4">Performance Overview</h3>
+          <h3 className="font-semibold mb-4">Performance</h3>
 
-          <div className="text-4xl font-bold text-green-600 mb-4">
+          <div className="text-3xl font-bold text-green-600 mb-4">
             {result.score}
           </div>
 
-          <div className="w-full bg-gray-200 h-3 rounded mb-6">
-            <div
-              className="bg-green-500 h-3 rounded"
-              style={{ width: `${result.score}%` }}
-            />
-          </div>
-
-          <div className="w-full h-[250px]">
+          <div className="w-full h-[200px]">
             <ResponsiveContainer>
               <RadarChart data={getChartData()}>
                 <PolarGrid />
@@ -241,14 +172,14 @@ export default function Home() {
             </ResponsiveContainer>
           </div>
 
-          <h4 className="font-semibold mt-6">Strengths</h4>
-          <ul className="list-disc ml-5 mb-4">
+          <h4 className="mt-4 font-semibold">Strengths</h4>
+          <ul className="list-disc ml-5">
             {result.strengths.map((s, i) => (
               <li key={i}>{s}</li>
             ))}
           </ul>
 
-          <h4 className="font-semibold">Improvements</h4>
+          <h4 className="mt-4 font-semibold">Improvements</h4>
           <ul className="list-disc ml-5">
             {result.improvements.map((i, idx) => (
               <li key={idx}>{i}</li>
@@ -257,29 +188,24 @@ export default function Home() {
         </div>
       )}
 
-      {/* Coaches */}
-      {result && (
+      {/* 🔥 선수 유사도 */}
+      {similarity.length > 0 && (
         <div className="bg-white p-6 rounded-xl shadow">
-          <h3 className="font-semibold mb-4">Recommended Coaches</h3>
+          <h3 className="font-semibold mb-4">⚽ Player Similarity</h3>
 
-          {matchCoaches().map((coach) => (
-            <div
-              key={coach.id}
-              className="border p-4 rounded mb-3 flex justify-between items-center"
-            >
-              <div>
-                <h4 className="font-bold">{coach.name}</h4>
-                <p className="text-sm text-gray-500">
-                  {coach.specialty}
-                </p>
+          {similarity.map((s, i) => (
+            <div key={i} className="mb-3">
+              <div className="flex justify-between">
+                <span>{s.player}</span>
+                <span>{s.score}%</span>
               </div>
 
-              <button
-                className="bg-blue-600 text-white px-3 py-1 rounded"
-                onClick={() => requestCoach(coach)}
-              >
-                Request
-              </button>
+              <div className="w-full bg-gray-200 h-2 rounded">
+                <div
+                  className="bg-blue-500 h-2 rounded"
+                  style={{ width: `${s.score}%` }}
+                />
+              </div>
             </div>
           ))}
         </div>

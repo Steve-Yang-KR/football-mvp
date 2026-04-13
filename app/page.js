@@ -14,6 +14,28 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // ✅ 코치 데이터 (MVP)
+  const coaches = [
+    {
+      id: 1,
+      name: "Carlos",
+      specialty: "dribbling",
+      rating: 4.8,
+    },
+    {
+      id: 2,
+      name: "David",
+      specialty: "speed",
+      rating: 4.6,
+    },
+    {
+      id: 3,
+      name: "Lee",
+      specialty: "ball control",
+      rating: 4.9,
+    },
+  ];
+
   // 회원가입
   const signUp = async () => {
     try {
@@ -61,8 +83,6 @@ export default function Home() {
       });
 
       const data = await res.json();
-
-      // JSON 파싱
       const parsed = JSON.parse(data.result);
 
       setResult(parsed);
@@ -71,6 +91,26 @@ export default function Home() {
     }
 
     setLoading(false);
+  };
+
+  // 🎯 코치 매칭 로직
+  const matchCoaches = () => {
+    if (!result) return [];
+
+    return coaches
+      .map((coach) => {
+        let score = 0;
+
+        if (result.improvements.join(" ").includes(coach.specialty)) {
+          score += 50;
+        }
+
+        score += coach.rating * 10;
+
+        return { ...coach, matchScore: score };
+      })
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 2);
   };
 
   return (
@@ -96,7 +136,9 @@ export default function Home() {
       <br /><br />
 
       <button onClick={signUp}>회원가입</button>
-      <button onClick={login} style={{ marginLeft: 10 }}>로그인</button>
+      <button onClick={login} style={{ marginLeft: 10 }}>
+        로그인
+      </button>
 
       <br /><br />
 
@@ -114,36 +156,39 @@ export default function Home() {
         {loading ? "AI 분석 중..." : "AI 분석"}
       </button>
 
-      {/* 결과 UI */}
+      {/* AI 결과 */}
       {result && (
-        <div style={{
-          marginTop: 20,
-          padding: 20,
-          border: "1px solid #ddd",
-          borderRadius: 10,
-          background: "#f9f9f9"
-        }}>
+        <div
+          style={{
+            marginTop: 20,
+            padding: 20,
+            border: "1px solid #ddd",
+            borderRadius: 10,
+            background: "#f9f9f9",
+          }}
+        >
           <h2>⚽ AI 분석 결과</h2>
 
-          {/* 점수 */}
           <h3>점수: {result.score}</h3>
 
-          {/* 프로그레스 바 */}
-          <div style={{
-            height: 10,
-            background: "#eee",
-            borderRadius: 5,
-            overflow: "hidden",
-            marginBottom: 10
-          }}>
-            <div style={{
-              width: `${result.score}%`,
-              height: "100%",
-              background: "green"
-            }} />
+          <div
+            style={{
+              height: 10,
+              background: "#eee",
+              borderRadius: 5,
+              overflow: "hidden",
+              marginBottom: 10,
+            }}
+          >
+            <div
+              style={{
+                width: `${result.score}%`,
+                height: "100%",
+                background: "green",
+              }}
+            />
           </div>
 
-          {/* 강점 */}
           <h4>✅ 강점</h4>
           <ul>
             {result.strengths.map((s, i) => (
@@ -151,13 +196,39 @@ export default function Home() {
             ))}
           </ul>
 
-          {/* 개선점 */}
           <h4>⚠️ 개선점</h4>
           <ul>
             {result.improvements.map((i, idx) => (
               <li key={idx}>{i}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* 🎯 코치 추천 */}
+      {result && (
+        <div style={{ marginTop: 20 }}>
+          <h2>🎯 추천 코치</h2>
+
+          {matchCoaches().map((coach) => (
+            <div
+              key={coach.id}
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 10,
+                padding: 15,
+                marginTop: 10,
+                background: "#fff",
+              }}
+            >
+              <h3>{coach.name}</h3>
+              <p>전문 분야: {coach.specialty}</p>
+              <p>평점: ⭐ {coach.rating}</p>
+              <p>매칭 점수: {coach.matchScore}</p>
+
+              <button>코치 요청</button>
+            </div>
+          ))}
         </div>
       )}
     </div>

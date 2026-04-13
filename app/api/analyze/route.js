@@ -13,7 +13,19 @@ export async function POST(req) {
     messages: [
       {
         role: "system",
-        content: "You are a professional football coach.",
+        content: `
+You are a professional football coach.
+
+Analyze the training and ALSO estimate player style attributes.
+
+IMPORTANT:
+Return realistic football metrics between 60 and 95.
+
+styleData meaning:
+- dribblingSpeed: how fast the player moves with ball
+- control: ball control quality
+- agility: quick direction change ability
+        `,
       },
       {
         role: "user",
@@ -25,7 +37,7 @@ Analyze this training:
       },
     ],
 
-    // 🔥 핵심 (JSON 강제)
+    // 🔥 JSON 강제 + styleData 추가
     response_format: {
       type: "json_schema",
       json_schema: {
@@ -34,22 +46,34 @@ Analyze this training:
           type: "object",
           properties: {
             score: { type: "number" },
+
             strengths: {
               type: "array",
               items: { type: "string" },
             },
+
             improvements: {
               type: "array",
               items: { type: "string" },
             },
+
+            // 🔥 추가
+            styleData: {
+              type: "object",
+              properties: {
+                dribblingSpeed: { type: "number" },
+                control: { type: "number" },
+                agility: { type: "number" },
+              },
+              required: ["dribblingSpeed", "control", "agility"],
+            },
           },
-          required: ["score", "strengths", "improvements"],
+          required: ["score", "strengths", "improvements", "styleData"],
         },
       },
     },
   });
 
-  // 🔥 이제 JSON.parse 필요 없음
   const result = JSON.parse(response.choices[0].message.content);
 
   return Response.json({

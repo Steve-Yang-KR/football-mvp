@@ -16,7 +16,6 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 코치 데이터
   const coaches = [
     { id: 1, name: "Carlos", specialty: "dribbling", rating: 4.8 },
     { id: 2, name: "David", specialty: "speed", rating: 4.6 },
@@ -56,7 +55,7 @@ export default function Home() {
     }
   };
 
-  // AI 분석 (🔥 안전 처리 포함)
+  // AI 분석
   const analyze = async () => {
     setLoading(true);
 
@@ -72,19 +71,16 @@ export default function Home() {
       const data = await res.json();
 
       let parsed;
-
       try {
         parsed = JSON.parse(data.result);
       } catch (e) {
-        console.log("🔥 원본 AI 응답:", data.result);
-        alert("AI 응답 파싱 실패 (콘솔 확인)");
-        setLoading(false);
+        alert("AI 응답 오류");
         return;
       }
 
       setResult(parsed);
     } catch (e) {
-      alert("AI 분석 실패: " + e.message);
+      alert("AI 분석 실패");
     }
 
     setLoading(false);
@@ -97,153 +93,182 @@ export default function Home() {
     return coaches
       .map((coach) => {
         let score = 0;
-
         if (result.improvements.join(" ").includes(coach.specialty)) {
           score += 50;
         }
-
         score += coach.rating * 10;
-
         return { ...coach, matchScore: score };
       })
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 2);
   };
 
-  // 코치 요청 저장
+  // 코치 요청
   const requestCoach = async (coach) => {
-    try {
-      await addDoc(collection(db, "coachRequests"), {
-        coachName: coach.name,
-        specialty: coach.specialty,
-        rating: coach.rating,
-        userEmail: email,
-        status: "pending", // ✅ 추가
-        createdAt: serverTimestamp(),
-      });
-  
-      alert("코치 요청 완료!");
-    } catch (e) {
-      alert("요청 실패: " + e.message);
-    }
+    await addDoc(collection(db, "coachRequests"), {
+      coachName: coach.name,
+      specialty: coach.specialty,
+      rating: coach.rating,
+      userEmail: email,
+      status: "pending",
+      createdAt: serverTimestamp(),
+    });
+
+    alert("요청 완료!");
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 500, margin: "auto" }}>
-      <h1>⚽ AI Football App</h1>
+    <div style={{
+      display: "flex",
+      minHeight: "100vh",
+      fontFamily: "Arial"
+    }}>
 
-      {/* 로그인 */}
-      <input
-        placeholder="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={{ width: "100%", padding: 8 }}
-      />
-      <br /><br />
+      {/* 사이드바 */}
+      <div style={{
+        width: 220,
+        background: "#111827",
+        color: "white",
+        padding: 20
+      }}>
+        <h2>⚽ AI Football</h2>
 
-      <input
-        type="password"
-        placeholder="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        style={{ width: "100%", padding: 8 }}
-      />
-      <br /><br />
-
-      <button onClick={signUp}>회원가입</button>
-      <button onClick={login} style={{ marginLeft: 10 }}>
-        로그인
-      </button>
-
-      <br /><br />
-
-      {/* 영상 업로드 */}
-      <input
-        type="file"
-        accept="video/*"
-        onChange={(e) => uploadVideo(e.target.files[0])}
-      />
-
-      <br /><br />
-
-      {/* AI 분석 */}
-      <button onClick={analyze} disabled={loading}>
-        {loading ? "AI 분석 중..." : "AI 분석"}
-      </button>
-
-      {/* AI 결과 */}
-      {result && (
-        <div style={{
-          marginTop: 20,
-          padding: 20,
-          border: "1px solid #ddd",
-          borderRadius: 10,
-          background: "#f9f9f9"
-        }}>
-          <h2>⚽ AI 분석 결과</h2>
-
-          <h3>점수: {result.score}</h3>
-
-          <div style={{
-            height: 10,
-            background: "#eee",
-            borderRadius: 5,
-            overflow: "hidden"
-          }}>
-            <div style={{
-              width: `${result.score}%`,
-              height: "100%",
-              background: "green"
-            }} />
-          </div>
-
-          <h4>✅ 강점</h4>
-          <ul>
-            {result.strengths.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-
-          <h4>⚠️ 개선점</h4>
-          <ul>
-            {result.improvements.map((i, idx) => (
-              <li key={idx}>{i}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* 코치 추천 */}
-      {result && (
         <div style={{ marginTop: 20 }}>
-          <h2>🎯 추천 코치</h2>
-
-          {matchCoaches().map((coach) => (
-            <div key={coach.id} style={{
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              padding: 15,
-              marginTop: 10
-            }}>
-              <h3>{coach.name}</h3>
-              <p>전문 분야: {coach.specialty}</p>
-              <p>평점: ⭐ {coach.rating}</p>
-              <p>매칭 점수: {coach.matchScore}</p>
-
-              <button onClick={() => requestCoach(coach)}>
-                코치 요청
-              </button>
-            </div>
-          ))}
+          <p>Dashboard</p>
+          <Link href="/requests">
+            <p style={{ cursor: "pointer" }}>📋 Requests</p>
+          </Link>
         </div>
-      )}
+      </div>
 
-      <br /><br />
+      {/* 메인 */}
+      <div style={{ flex: 1, padding: 30, background: "#f3f4f6" }}>
 
-      {/* 요청 리스트 이동 */}
-      <Link href="/requests">
-        <button>📋 코치 요청 리스트 보기</button>
-      </Link>
+        <h1>Dashboard</h1>
+
+        {/* 로그인 카드 */}
+        <div style={{
+          background: "white",
+          padding: 20,
+          borderRadius: 10,
+          marginBottom: 20
+        }}>
+          <h3>Login</h3>
+
+          <input
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ width: "100%", padding: 10, marginBottom: 10 }}
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ width: "100%", padding: 10 }}
+          />
+
+          <div style={{ marginTop: 10 }}>
+            <button onClick={signUp}>Sign Up</button>
+            <button onClick={login} style={{ marginLeft: 10 }}>
+              Login
+            </button>
+          </div>
+        </div>
+
+        {/* 업로드 카드 */}
+        <div style={{
+          background: "white",
+          padding: 20,
+          borderRadius: 10,
+          marginBottom: 20
+        }}>
+          <h3>Upload Training Video</h3>
+
+          <input
+            type="file"
+            accept="video/*"
+            onChange={(e) => uploadVideo(e.target.files[0])}
+          />
+
+          <br /><br />
+
+          <button onClick={analyze}>
+            {loading ? "Analyzing..." : "Run AI Analysis"}
+          </button>
+        </div>
+
+        {/* 결과 */}
+        {result && (
+          <div style={{
+            background: "white",
+            padding: 20,
+            borderRadius: 10,
+            marginBottom: 20
+          }}>
+            <h3>Performance Score</h3>
+
+            <h2>{result.score}</h2>
+
+            <div style={{
+              height: 10,
+              background: "#ddd",
+              borderRadius: 5
+            }}>
+              <div style={{
+                width: `${result.score}%`,
+                height: "100%",
+                background: "green"
+              }} />
+            </div>
+
+            <h4>Strengths</h4>
+            <ul>
+              {result.strengths.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+
+            <h4>Improvements</h4>
+            <ul>
+              {result.improvements.map((i, idx) => (
+                <li key={idx}>{i}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 코치 추천 */}
+        {result && (
+          <div style={{
+            background: "white",
+            padding: 20,
+            borderRadius: 10
+          }}>
+            <h3>Recommended Coaches</h3>
+
+            {matchCoaches().map((coach) => (
+              <div key={coach.id} style={{
+                border: "1px solid #ddd",
+                padding: 10,
+                marginTop: 10,
+                borderRadius: 8
+              }}>
+                <h4>{coach.name}</h4>
+                <p>{coach.specialty}</p>
+                <p>⭐ {coach.rating}</p>
+
+                <button onClick={() => requestCoach(coach)}>
+                  Request Coach
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }

@@ -10,6 +10,14 @@ import {
 import { ref, uploadBytes } from "firebase/storage";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
+// 📊 Chart
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
+} from "recharts";
+
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,59 +32,53 @@ export default function Home() {
 
   // 회원가입
   const signUp = async () => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      alert("회원가입 완료");
-    } catch (e) {
-      alert(e.message);
-    }
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("회원가입 완료");
   };
 
   // 로그인
   const login = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      alert("로그인 완료");
-    } catch (e) {
-      alert(e.message);
-    }
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("로그인 완료");
   };
 
   // 영상 업로드
   const uploadVideo = async (file) => {
     if (!file) return;
-
-    try {
-      const storageRef = ref(storage, `videos/${file.name}`);
-      await uploadBytes(storageRef, file);
-      alert("업로드 완료");
-    } catch (e) {
-      alert("업로드 실패");
-    }
+    const storageRef = ref(storage, `videos/${file.name}`);
+    await uploadBytes(storageRef, file);
+    alert("업로드 완료");
   };
 
-  // AI 분석 (🔥 JSON 안전 - parse 필요 없음)
+  // AI 분석 (JSON 안정)
   const analyze = async () => {
     setLoading(true);
 
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        body: JSON.stringify({
-          drill: "dribbling",
-          duration: "1 min",
-        }),
-      });
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      body: JSON.stringify({
+        drill: "dribbling",
+        duration: "1 min",
+      }),
+    });
 
-      const data = await res.json();
-
-      // ✅ 그대로 사용 (이미 JSON)
-      setResult(data.result);
-    } catch (e) {
-      alert("AI 분석 실패");
-    }
+    const data = await res.json();
+    setResult(data.result);
 
     setLoading(false);
+  };
+
+  // 📊 차트 데이터
+  const getChartData = () => {
+    if (!result) return [];
+
+    return [
+      { subject: "Skill", A: result.score },
+      { subject: "Control", A: 75 },
+      { subject: "Speed", A: 70 },
+      { subject: "Stamina", A: 65 },
+      { subject: "Technique", A: 80 },
+    ];
   };
 
   // 코치 매칭
@@ -99,20 +101,16 @@ export default function Home() {
 
   // 코치 요청
   const requestCoach = async (coach) => {
-    try {
-      await addDoc(collection(db, "coachRequests"), {
-        coachName: coach.name,
-        specialty: coach.specialty,
-        rating: coach.rating,
-        userEmail: email,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
+    await addDoc(collection(db, "coachRequests"), {
+      coachName: coach.name,
+      specialty: coach.specialty,
+      rating: coach.rating,
+      userEmail: email,
+      status: "pending",
+      createdAt: serverTimestamp(),
+    });
 
-      alert("코치 요청 완료!");
-    } catch (e) {
-      alert("요청 실패");
-    }
+    alert("요청 완료!");
   };
 
   return (
@@ -187,18 +185,35 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Result */}
+        {/* Result + Chart */}
         {result && (
           <div className="bg-white p-6 rounded-xl shadow mb-6">
-            <h3 className="font-semibold mb-4">Performance</h3>
+            <h3 className="font-semibold mb-4">Performance Overview</h3>
 
-            <div className="text-3xl font-bold mb-2">{result.score}</div>
+            <div className="text-4xl font-bold text-green-600 mb-4">
+              {result.score}
+            </div>
 
-            <div className="w-full bg-gray-200 h-2 rounded mb-4">
+            <div className="w-full bg-gray-200 h-3 rounded mb-6">
               <div
-                className="bg-green-500 h-2 rounded"
+                className="bg-green-500 h-3 rounded"
                 style={{ width: `${result.score}%` }}
               />
+            </div>
+
+            {/* Radar Chart */}
+            <div className="flex justify-center mb-6">
+              <RadarChart width={300} height={250} data={getChartData()}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="subject" />
+                <Radar
+                  name="Player"
+                  dataKey="A"
+                  stroke="#2563eb"
+                  fill="#3b82f6"
+                  fillOpacity={0.6}
+                />
+              </RadarChart>
             </div>
 
             <h4 className="font-semibold">Strengths</h4>
@@ -244,6 +259,7 @@ export default function Home() {
             ))}
           </div>
         )}
+
       </div>
     </div>
   );

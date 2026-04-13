@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { db, auth } from "../../lib/firebase";
 import {
   collection,
@@ -19,7 +19,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
 
-  // 로그인 감지 + 채팅방 불러오기
+  const bottomRef = useRef(null);
+
+  // 로그인 + 채팅방
   useEffect(() => {
     auth.onAuthStateChanged((u) => {
       if (!u) return;
@@ -40,7 +42,7 @@ export default function ChatPage() {
     });
   }, []);
 
-  // 메시지 불러오기
+  // 메시지
   useEffect(() => {
     if (!selectedRoom) return;
 
@@ -53,6 +55,10 @@ export default function ChatPage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map((doc) => doc.data());
       setMessages(msgs);
+
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     });
 
     return () => unsubscribe();
@@ -60,7 +66,7 @@ export default function ChatPage() {
 
   // 메시지 보내기
   const sendMessage = async () => {
-    if (!text) return;
+    if (!text.trim()) return;
 
     await addDoc(collection(db, "messages"), {
       roomId: selectedRoom.id,
@@ -73,58 +79,90 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex gap-6">
+    <div className="flex h-[80vh] gap-4">
 
       {/* 채팅방 리스트 */}
-      <div className="w-1/3 bg-white p-4 rounded shadow">
-        <h3 className="font-bold mb-3">Chat Rooms</h3>
+      <div className="w-1/3 bg-white rounded-xl shadow p-4 overflow-y-auto">
+        <h3 className="font-bold mb-4">💬 Chats</h3>
 
         {rooms.map((room) => (
           <div
             key={room.id}
-            className="p-2 border mb-2 cursor-pointer"
             onClick={() => setSelectedRoom(room)}
+            className={`p-3 rounded cursor-pointer mb-2 ${
+              selectedRoom?.id === room.id
+                ? "bg-blue-100"
+                : "hover:bg-gray-100"
+            }`}
           >
-            {room.coachName}
+            <div className="font-semibold">{room.coachName}</div>
+            <div className="text-sm text-gray-500">
+              Tap to chat
+            </div>
           </div>
         ))}
       </div>
 
-      {/* 채팅창 */}
-      <div className="flex-1 bg-white p-4 rounded shadow">
+      {/* 채팅 영역 */}
+      <div className="flex-1 bg-white rounded-xl shadow flex flex-col">
+
         {selectedRoom ? (
           <>
-            <h3 className="font-bold mb-3">
-              Chat with {selectedRoom.coachName}
-            </h3>
-
-            <div className="h-[300px] overflow-y-auto border mb-3 p-2">
-              {messages.map((m, i) => (
-                <div key={i} className="mb-2">
-                  <b>{m.sender}:</b> {m.text}
-                </div>
-              ))}
+            {/* 헤더 */}
+            <div className="p-4 border-b font-bold">
+              {selectedRoom.coachName}
             </div>
 
-            <div className="flex gap-2">
+            {/* 메시지 영역 */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {messages.map((m, i) => {
+                const isMe = m.sender === user.email;
+
+                return (
+                  <div
+                    key={i}
+                    className={`flex ${
+                      isMe ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`px-3 py-2 rounded-lg max-w-[70%] ${
+                        isMe
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200 text-black"
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* 입력창 */}
+            <div className="p-3 border-t flex gap-2">
               <input
-                className="flex-1 border p-2"
+                className="flex-1 border rounded px-3 py-2"
+                placeholder="메시지 입력..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               />
               <button
-                className="bg-blue-600 text-white px-4"
+                className="bg-blue-600 text-white px-4 rounded"
                 onClick={sendMessage}
               >
-                Send
+                전송
               </button>
             </div>
           </>
         ) : (
-          <p>Select a chat</p>
+          <div className="flex items-center justify-center h-full text-gray-400">
+            채팅방을 선택하세요
+          </div>
         )}
       </div>
-
     </div>
   );
 }

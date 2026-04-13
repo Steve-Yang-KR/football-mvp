@@ -118,9 +118,10 @@ export default function Home() {
         specialty: coach.specialty,
         rating: coach.rating,
         userEmail: email,
+        status: "pending", // ✅ 추가
         createdAt: serverTimestamp(),
       });
-
+  
       alert("코치 요청 완료!");
     } catch (e) {
       alert("요청 실패: " + e.message);

@@ -10,7 +10,7 @@ import {
 import { ref, uploadBytes } from "firebase/storage";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-// 🔥 Chart
+// 📊 Chart
 import {
   RadarChart,
   PolarGrid,
@@ -33,43 +33,70 @@ export default function Home() {
 
   // 회원가입
   const signUp = async () => {
-    await createUserWithEmailAndPassword(auth, email, password);
-    alert("회원가입 완료");
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      alert("회원가입 완료");
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
   // 로그인
   const login = async () => {
-    await signInWithEmailAndPassword(auth, email, password);
-    alert("로그인 완료");
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("로그인 완료");
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
   // 영상 업로드
   const uploadVideo = async (file) => {
     if (!file) return;
-    const storageRef = ref(storage, `videos/${file.name}`);
-    await uploadBytes(storageRef, file);
-    alert("업로드 완료");
+
+    try {
+      const storageRef = ref(storage, `videos/${file.name}`);
+      await uploadBytes(storageRef, file);
+      alert("업로드 완료");
+    } catch (e) {
+      alert("업로드 실패");
+    }
   };
 
-  // AI 분석
+  // AI 분석 + 저장
   const analyze = async () => {
     setLoading(true);
 
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      body: JSON.stringify({
-        drill: "dribbling",
-        duration: "1 min",
-      }),
-    });
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: JSON.stringify({
+          drill: "dribbling",
+          duration: "1 min",
+        }),
+      });
 
-    const data = await res.json();
-    setResult(data.result);
+      const data = await res.json();
+
+      // 결과 세팅
+      setResult(data.result);
+
+      // 🔥 분석 결과 저장
+      await addDoc(collection(db, "analysisResults"), {
+        userEmail: email,
+        score: data.result.score,
+        createdAt: serverTimestamp(),
+      });
+
+    } catch (e) {
+      alert("AI 분석 실패");
+    }
 
     setLoading(false);
   };
 
-  // 🔥 차트 데이터 (항상 숫자 보장)
+  // 📊 차트 데이터
   const getChartData = () => {
     if (!result) return [];
 
@@ -102,16 +129,20 @@ export default function Home() {
 
   // 코치 요청
   const requestCoach = async (coach) => {
-    await addDoc(collection(db, "coachRequests"), {
-      coachName: coach.name,
-      specialty: coach.specialty,
-      rating: coach.rating,
-      userEmail: email,
-      status: "pending",
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await addDoc(collection(db, "coachRequests"), {
+        coachName: coach.name,
+        specialty: coach.specialty,
+        rating: coach.rating,
+        userEmail: email,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
 
-    alert("요청 완료!");
+      alert("코치 요청 완료!");
+    } catch (e) {
+      alert("요청 실패");
+    }
   };
 
   return (
@@ -126,6 +157,10 @@ export default function Home() {
 
           <Link href="/requests" className="block hover:text-blue-400">
             📋 Requests
+          </Link>
+
+          <Link href="/progress" className="block hover:text-blue-400">
+            📈 Progress
           </Link>
         </nav>
       </div>
@@ -193,7 +228,7 @@ export default function Home() {
               />
             </div>
 
-            {/* 🔥 차트 (Responsive로 확실히 표시) */}
+            {/* Radar Chart */}
             <div className="w-full h-[250px]">
               <ResponsiveContainer>
                 <RadarChart data={getChartData()}>
@@ -250,6 +285,7 @@ export default function Home() {
             ))}
           </div>
         )}
+
       </div>
     </div>
   );

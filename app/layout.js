@@ -13,23 +13,50 @@ export default function RootLayout({ children }) {
 
         {/* Sidebar */}
         <div className="w-60 bg-gray-900 text-white p-6">
-          <h2 className="text-xl font-bold mb-6">⚽ AI Football</h2>
 
-          <nav className="space-y-4">
-            <Link href="/" className="block hover:text-blue-400">
+          {/* Logo */}
+          <h2 className="text-xl font-bold mb-8">
+            ⚽ AI Football
+          </h2>
+
+          {/* Menu */}
+          <nav className="space-y-4 text-sm">
+
+            <Link
+              href="/"
+              className="block hover:text-blue-400"
+            >
               🏠 Dashboard
             </Link>
 
-            <Link href="/requests" className="block hover:text-blue-400">
+            <Link
+              href="/requests"
+              className="block hover:text-blue-400"
+            >
               📋 Requests
             </Link>
 
-            <Link href="/progress" className="block hover:text-blue-400">
+            <Link
+              href="/progress"
+              className="block hover:text-blue-400"
+            >
               📈 Progress
             </Link>
-            <Link href="/chat" className="block hover:text-blue-400">
+
+            <Link
+              href="/chat"
+              className="block hover:text-blue-400"
+            >
               💬 Chat
             </Link>
+
+            <Link
+              href="/leaderboard"
+              className="block hover:text-blue-400"
+            >
+              🏆 Leaderboard
+            </Link>
+
           </nav>
         </div>
 

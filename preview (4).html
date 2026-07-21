@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AI Digital Twin Orchard Prototype</title>
+<style>
+:root{--bg:#f4f7f2;--card:#fff;--ink:#163021;--muted:#66756b;--accent:#2f7d4a;--line:#dfe8df}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(120deg,#183c27,#2f7d4a);color:#fff;padding:22px 28px}
+header h1{margin:0 0 6px;font-size:28px} header p{margin:0;opacity:.9}
+main{max-width:1220px;margin:auto;padding:22px}
+.grid{display:grid;grid-template-columns:1.05fr 1.95fr;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 3px 12px rgba(20,50,30,.05)}
+h2{font-size:19px;margin:0 0 14px} h3{font-size:15px;margin:14px 0 8px}
+label{display:block;font-size:13px;color:var(--muted);margin-top:12px}
+select,input[type=range]{width:100%;margin-top:5px}
+.value{float:right;color:var(--accent);font-weight:bold}
+.flow{display:flex;align-items:center;gap:7px;overflow:auto;padding:8px 0 2px}
+.node{min-width:120px;text-align:center;padding:12px 8px;border-radius:10px;background:#eef6ef;border:1px solid #cee1d1;font-size:13px;font-weight:bold}
+.arrow{font-size:20px;color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:15px}
+.kpi{background:#f7faf7;border:1px solid var(--line);border-radius:11px;padding:12px}
+.kpi b{font-size:23px;display:block;color:var(--accent)} .kpi span{font-size:12px;color:var(--muted)}
+.layout{height:295px;position:relative;border-radius:12px;overflow:hidden;background:
+linear-gradient(90deg,rgba(255,255,255,.25) 1px,transparent 1px),
+linear-gradient(rgba(255,255,255,.25) 1px,transparent 1px),
+#95b779;background-size:26px 26px}
+.row{position:absolute;left:7%;right:7%;height:5px;border-radius:4px;background:#355f2e}
+.sensor{position:absolute;width:13px;height:13px;background:#ffd54f;border-radius:50%;border:2px solid #fff}
+.zone{position:absolute;border:3px dashed rgba(255,255,255,.75);border-radius:10px}
+.legend{font-size:12px;color:var(--muted);margin-top:8px}
+.rec{background:#eef7f0;border-left:5px solid var(--accent);padding:13px;border-radius:7px;line-height:1.45}
+.ai{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.ai div{border:1px solid var(--line);border-radius:10px;padding:11px;font-size:13px}
+.ai b{display:block;margin-bottom:4px}
+footer{max-width:1220px;margin:auto;padding:0 22px 24px;color:var(--muted);font-size:12px}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+
+.console-toggle{margin-top:14px;border:0;border-radius:9px;padding:10px 14px;background:#163c27;color:#fff;font-weight:bold;cursor:pointer}
+.console-toggle:hover{filter:brightness(1.08)}
+.ai-console{display:none;margin-top:12px;background:#10251a;color:#d7f5df;border-radius:10px;padding:14px;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.55;min-height:190px;max-height:310px;overflow:auto;border:1px solid #2c5a3d}
+.ai-console.open{display:block}.console-line{white-space:pre-wrap}.console-ok{color:#8be39f}.console-head{color:#ffd76a;font-weight:bold}.console-rec{color:#8fd3ff}
+
+
+.llm-card{margin-top:18px}.llm-grid{display:grid;grid-template-columns:1.1fr 1.9fr;gap:14px}.llm-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}.llm-controls select,.llm-controls input,.llm-controls textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:#fff;color:var(--ink)}.llm-controls textarea{min-height:92px;resize:vertical}.llm-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.llm-btn{border:0;border-radius:8px;padding:9px 12px;background:var(--accent);color:#fff;font-weight:bold;cursor:pointer}.llm-btn.secondary{background:#eaf3ec;color:#245c38;border:1px solid #cfe0d2}.llm-output{min-height:260px;border:1px solid var(--line);border-radius:10px;background:#fbfdfb;padding:14px;white-space:pre-wrap;line-height:1.5}.llm-meta{font-size:12px;color:var(--muted);margin-top:8px}.chipbar{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}.chip{font-size:12px;background:#eef6ef;border:1px solid #cee1d1;border-radius:999px;padding:6px 9px;cursor:pointer}.thinking{opacity:.65;font-style:italic}@media(max-width:850px){.llm-grid{grid-template-columns:1fr}.llm-controls{grid-template-columns:1fr}}
+
+
+.site-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}.env-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.env-box{background:#f7faf7;border:1px solid var(--line);border-radius:10px;padding:10px}.env-box b{display:block;font-size:18px;color:var(--accent)}.env-box span{font-size:11px;color:var(--muted)}
+.zone-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.zone-tab{border:1px solid #bfd3c3;background:#f4f9f5;padding:8px 11px;border-radius:20px;cursor:pointer}.zone-tab.active{background:#245f39;color:#fff}.rank-list{display:grid;gap:9px}.rank-item{border:1px solid var(--line);border-radius:11px;padding:11px}.rank-head{display:flex;justify-content:space-between;gap:10px}.score{font-size:20px;font-weight:bold;color:var(--accent)}.bar{height:7px;background:#e6eee7;border-radius:6px;margin:7px 0;overflow:hidden}.bar i{display:block;height:100%;background:#4d8d5e}.reason{font-size:12px;color:var(--muted);line-height:1.45}.risk{color:#9b5d16}.source-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.source-pill{padding:9px;border-radius:9px;background:#eef5ef;font-size:11px}.source-pill b{display:block;color:#275f3b;margin-bottom:3px}.decision-note{margin-top:10px;padding:11px;border-left:4px solid #e0a62b;background:#fff9e9;border-radius:7px;font-size:12px;line-height:1.5}
+@media(max-width:850px){.site-grid{grid-template-columns:1fr}.env-grid{grid-template-columns:repeat(2,1fr)}.source-strip{grid-template-columns:repeat(2,1fr)}}
+
+</style>
+</head>
+<body>
+<header>
+<h1>AI Digital Twin Platform for Sustainable Apple Orchards</h1>
+<p>10-hectare pre-planting design prototype • WUR group project</p>
+</header>
+<main>
+<div class="card">
+<h2>Digital Twin Concept</h2>
+<div class="flow">
+<div class="node">Real / Planned Orchard</div><div class="arrow">→</div>
+<div class="node">Satellite + Drone + Sensors + Weather</div><div class="arrow">→</div>
+<div class="node">Living Digital Twin</div><div class="arrow">→</div>
+<div class="node">AI Simulation & Optimization</div><div class="arrow">→</div>
+<div class="node">Decision Support</div><div class="arrow">→</div>
+<div class="node">Farmer & Partners</div>
+</div>
+</div>
+
+<div class="grid" style="margin-top:18px">
+<section class="card">
+<h2>Scenario Controls</h2>
+<label>Training system
+<select id="system"><option value="biaxis">Bi-axis</option><option value="vtrellis">V-trellis</option><option value="spindle">Tall spindle</option></select>
+</label>
+<label>Row spacing <span class="value" id="rowv">3.2 m</span>
+<input id="row" type="range" min="2.8" max="4.5" value="3.2" step=".1">
+</label>
+<label>Tree spacing <span class="value" id="treev">1.0 m</span>
+<input id="tree" type="range" min=".7" max="1.8" value="1" step=".1">
+</label>
+<label>Irrigation strategy
+<select id="irr"><option value="ai">AI sensor-based</option><option value="et">ET model-based</option><option value="fixed">Fixed schedule</option></select>
+</label>
+<label>Canopy-targeted spraying
+<select id="spray"><option value="yes">Enabled</option><option value="no">Conventional</option></select>
+</label>
+<label>Organic pilot area <span class="value" id="orgv">20%</span>
+<input id="org" type="range" min="0" max="50" value="20" step="5">
+</label>
+<h3>AI modules activated</h3>
+<div class="ai">
+<div><b>Multi-objective optimizer</b>Balances yield, cost, water, biodiversity and risk.</div>
+<div><b>Yield prediction</b>Estimates mature yield from layout, cultivar and site variables.</div>
+<div><b>Computer vision</b>Maps canopy volume, gaps, stress and spray targets.</div>
+<div><b>Adaptive irrigation</b>Updates irrigation recommendations from soil and weather data.</div>
+</div>
+</section>
+
+<section class="card">
+<h2>Digital Twin Decision Engine</h2>
+<div class="layout" id="map">
+<div class="zone" style="left:4%;top:5%;width:42%;height:42%"></div>
+<div class="zone" style="right:4%;bottom:5%;width:42%;height:42%"></div>
+</div>
+<div class="legend">Green lines = proposed tree rows • Yellow points = sensing nodes • Dashed areas = management zones</div>
+<div class="kpis">
+<div class="kpi"><b id="trees">31,250</b><span>Estimated trees</span></div>
+<div class="kpi"><b id="yield">1,563 t</b><span>Mature annual yield scenario</span></div>
+<div class="kpi"><b id="water">30%</b><span>Water-saving target</span></div>
+<div class="kpi"><b id="chem">50%</b><span>Spray-volume reduction target</span></div>
+</div>
+<h3>Intelligent Orchard Design Assistant</h3>
+<div class="rec" id="rec">Recommended scenario: Bi-axis at 3.2 m × 1.0 m, AI sensor-based irrigation, canopy-targeted spraying, and a 20% organic learning block. Validate against slope, machinery width, rootstock, frost and local disease pressure before planting.</div>
+<button class="console-toggle" id="consoleToggle" type="button">Toggle AI Console</button>
+<div class="ai-console" id="aiConsole" aria-live="polite"></div>
+</section>
+</div>
+
+
+<section class="card" id="siteEngine">
+<h2>Site-Specific Cultivar–Rootstock Recommendation Engine</h2>
+<div class="zone-tabs" id="zoneTabs"></div>
+<div class="site-grid">
+<div>
+<h3>Environmental profile for <span id="zoneName">Zone A</span></h3>
+<div class="env-grid">
+<div class="env-box"><b id="soilPH">6.4</b><span>Soil pH</span></div>
+<div class="env-box"><b id="drainage">Good</b><span>Drainage</span></div>
+<div class="env-box"><b id="frost">Medium</b><span>Spring frost exposure</span></div>
+<div class="env-box"><b id="slope">1.2%</b><span>Slope</span></div>
+<div class="env-box"><b id="waterAvail">High</b><span>Water availability</span></div>
+<div class="env-box"><b id="gdd">1,480</b><span>Growing degree-day index</span></div>
+</div>
+<label>Farmer priority
+<select id="sitePriority"><option value="balanced">Balanced performance</option><option value="yield">Yield and early bearing</option><option value="resilience">Climate and disease resilience</option><option value="organic">Organic suitability</option><option value="storage">Storage and market window</option></select></label>
+<label>Climate scenario
+<select id="climateScenario"><option value="historic">Historical baseline</option><option value="2035">2035 warmer / drier scenario</option><option value="wet">Wet-season disease-pressure scenario</option><option value="frost">Severe spring-frost scenario</option></select></label>
+<div class="decision-note"><b>Decision rule:</b> Public gridded data generates a screening recommendation. Before planting, validate with field soil pits, drainage inspection, local frost logging, water tests, and replicated cultivar–rootstock trials.</div>
+</div>
+<div>
+<h3>Ranked combinations</h3>
+<div class="rank-list" id="rankList"></div>
+</div>
+</div>
+<div class="source-strip">
+<div class="source-pill"><b>AgERA5</b>Long-term temperature, rainfall, radiation and evapotranspiration.</div>
+<div class="source-pill"><b>KNMI Open Data</b>Local station observations and Dutch weather records.</div>
+<div class="source-pill"><b>SoilGrids</b>pH, texture, carbon, bulk density and water-related soil layers.</div>
+<div class="source-pill"><b>AHN + Copernicus</b>Fine topography, slope, wetness pathways and vegetation history.</div>
+</div>
+</section>
+
+<section class="card llm-card">
+<h2>AI Orchard Copilot — LLM Functions</h2>
+<div class="llm-grid">
+<div>
+<div class="llm-controls">
+<label>Audience
+<select id="llmAudience"><option>Farmer</option><option>WUR researcher</option><option>Cooperative</option><option>Government / extension</option><option>Investor</option></select></label>
+<label>Response mode
+<select id="llmMode"><option value="recommend">Recommend</option><option value="explain">Explain</option><option value="compare">Compare scenarios</option><option value="risk">Risk review</option><option value="pitch">Generate pitch</option></select></label>
+</div>
+<label>Ask the orchard copilot
+<textarea id="llmPrompt" placeholder="Example: Which cultivar and rootstock combination should we test first for a cool, moderately wet site near Wageningen?"></textarea></label>
+<div class="chipbar">
+<button class="chip" data-q="Recommend a cultivar and rootstock shortlist for the WUR area.">Variety + rootstock</button>
+<button class="chip" data-q="Explain why this orchard layout is sustainable.">Explain design</button>
+<button class="chip" data-q="Compare this scenario with a lower-density orchard.">Compare scenario</button>
+<button class="chip" data-q="Identify the five biggest risks before planting.">Risk review</button>
+</div>
+<div class="llm-actions">
+<button class="llm-btn" id="askCopilot">Ask AI Copilot</button>
+<button class="llm-btn secondary" id="useScenario">Use current scenario</button>
+<button class="llm-btn secondary" id="clearCopilot">Clear</button>
+</div>
+<div class="llm-meta">Demo mode runs locally in the browser. A secure server endpoint can later connect this interface to an actual LLM and WUR datasets.</div>
+</div>
+<div>
+<div class="llm-output" id="llmOutput">Select a suggested question or enter your own request. The copilot will ground its response in the current orchard scenario.</div>
+</div>
+</div>
+</section>
+
+</main>
+<footer>Prototype calculations are illustrative decision-support outputs, not agronomic guarantees. Field validation and local calibration are required.</footer>
+<script>
+const $=id=>document.getElementById(id);
+function update(){
+ const rs=+$("row").value, ts=+$("tree").value, org=+$("org").value;
+ $("rowv").textContent=rs.toFixed(1)+" m"; $("treev").textContent=ts.toFixed(1)+" m"; $("orgv").textContent=org+"%";
+ const trees=Math.round(100000/(rs*ts));
+ const sys=$("system").value;
+ const yieldPerTree=sys==="biaxis"?50:sys==="vtrellis"?47:44;
+ const maturity=(trees*yieldPerTree/1000);
+ const irr=$("irr").value, spray=$("spray").value;
+ const water=irr==="ai"?30:irr==="et"?20:5;
+ const chem=spray==="yes"?50:5;
+ $("trees").textContent=trees.toLocaleString();
+ $("yield").textContent=Math.round(maturity).toLocaleString()+" t";
+ $("water").textContent=water+"%"; $("chem").textContent=chem+"%";
+ const names={biaxis:"Bi-axis",vtrellis:"V-trellis",spindle:"Tall spindle"};
+ $("rec").textContent=`Recommended scenario: ${names[sys]} at ${rs.toFixed(1)} m × ${ts.toFixed(1)} m, ${irr==="ai"?"AI sensor-based":irr==="et"?"ET model-based":"fixed-schedule"} irrigation, ${spray==="yes"?"canopy-targeted":"conventional"} spraying, and a ${org}% organic learning block. Compare alternatives by ROI, water, spray use, biodiversity, machinery access and climate risk before planting.`;
+ drawRows(rs);
+}
+function drawRows(rs){
+ const map=$("map"); map.querySelectorAll(".row,.sensor").forEach(e=>e.remove());
+ const n=Math.max(7,Math.round(26/rs));
+ for(let i=0;i<n;i++){
+  const r=document.createElement("div");r.className="row";r.style.top=(8+i*(84/(n-1)))+"%";map.appendChild(r);
+  if(i%3===1){const s=document.createElement("div");s.className="sensor";s.style.left=(20+(i*11)%65)+"%";s.style.top=(6+i*(84/(n-1)))+"%";map.appendChild(s);}
+ }
+}
+function renderConsole(){
+ const rs=+(""+$('row').value), ts=+(""+$('tree').value), org=+(""+$('org').value);
+ const sys=$('system').value, irr=$('irr').value, spray=$('spray').value;
+ const names={biaxis:'Bi-axis',vtrellis:'V-trellis',spindle:'Tall spindle'};
+ const trees=Math.round(100000/(rs*ts));
+ const yieldPerTree=sys==='biaxis'?50:sys==='vtrellis'?47:44;
+ const maturity=Math.round(trees*yieldPerTree/1000);
+ const water=irr==='ai'?30:irr==='et'?20:5;
+ const chem=spray==='yes'?50:5;
+ const roi=Math.max(8,Math.min(40,Math.round(18+water*.25+chem*.12-Math.abs(rs-3.2)*4-Math.abs(ts-1.0)*5)));
+ const sustainability=Math.max(55,Math.min(96,Math.round(58+water*.35+chem*.28+org*.18)));
+ const balance=Math.round((roi/40*30)+(water/35*25)+(chem/60*25)+(sustainability/100*20));
+ const lines=[
+  '<span class="console-head">AI DIGITAL TWIN DECISION ENGINE</span>',
+  '--------------------------------------------',
+  'Loading site boundary and orchard assumptions...',
+  '<span class="console-ok">✓ Site model initialized: 10.0 ha</span>',
+  '<span class="console-ok">✓ Weather, soil and irrigation layers connected</span>',
+  '<span class="console-ok">✓ Candidate layouts generated</span>','',
+  'Running multi-objective optimization...',
+  'Objectives: ROI | Yield | Water | Spray | Sustainability',
+  '<span class="console-ok">✓ 1,024 virtual orchard scenarios evaluated</span>','',
+  '<span class="console-head">SELECTED SCENARIO</span>',
+  `Training system: ${names[sys]}`,
+  `Spacing: ${rs.toFixed(1)} m × ${ts.toFixed(1)} m`,
+  `Estimated trees: ${trees.toLocaleString()}`,
+  `Mature yield scenario: ${maturity.toLocaleString()} t/year`,
+  `Organic learning block: ${org}%`,'',
+  '<span class="console-head">EXPECTED TARGETS</span>',
+  `Planning ROI improvement: ${roi}%`,
+  `Water saving: ${water}%`,
+  `Spray-volume reduction: ${chem}%`,
+  `Sustainability score: ${sustainability}/100`,
+  `Balanced decision score: ${balance}/100`,'',
+  '<span class="console-rec">RECOMMENDATION:</span>',
+  `${names[sys]} with ${irr==='ai'?'AI sensor-based':irr==='et'?'ET model-based':'fixed-schedule'} irrigation and ${spray==='yes'?'canopy-targeted':'conventional'} spraying.`,
+  'Validate slope, machinery width, rootstock, frost exposure and disease pressure before implementation.','',
+  'Note: Prototype values are illustrative targets, not guaranteed field outcomes.'
+ ];
+ $('aiConsole').innerHTML=lines.map(x=>`<div class="console-line">${x}</div>`).join('');
+}
+$('consoleToggle').addEventListener('click',()=>{
+ const c=$('aiConsole'); c.classList.toggle('open');
+ $('consoleToggle').textContent=c.classList.contains('open')?'Hide AI Console':'Toggle AI Console';
+ if(c.classList.contains('open')) renderConsole();
+});
+["system","row","tree","irr","spray","org"].forEach(id=>$(id).addEventListener("input",()=>{update();if($("aiConsole").classList.contains("open"))renderConsole();}));
+update();
+
+function scenarioContext(){
+ const rs=+$('row').value,ts=+$('tree').value,org=+$('org').value,sys=$('system').value,irr=$('irr').value,spray=$('spray').value;
+ const names={biaxis:'Bi-axis',vtrellis:'V-trellis',spindle:'Tall spindle'};
+ const trees=Math.round(100000/(rs*ts));
+ return {rs,ts,org,sys:names[sys],irr:irr==='ai'?'AI sensor-based':irr==='et'?'ET model-based':'fixed schedule',spray:spray==='yes'?'canopy-targeted':'conventional',trees};
+}
+function localLLM(prompt,mode,audience){
+ const c=scenarioContext(); const q=prompt.toLowerCase();
+ let title='AI ORCHARD COPILOT'; let body='';
+ if(mode==='pitch'){
+  body=`For ${audience}: Before planting ${c.trees.toLocaleString()} trees, we create a living virtual orchard and test alternative designs. The current scenario uses ${c.sys}, ${c.rs.toFixed(1)} m × ${c.ts.toFixed(1)} m spacing, ${c.irr} irrigation and ${c.spray} spraying. The platform combines public soil and weather data, orchard models and AI to recommend layouts, cultivar–rootstock combinations and management actions. The result is a transparent decision-support system that reduces avoidable investment mistakes and creates measurable sustainability targets.`;
+ } else if(mode==='risk' || q.includes('risk')){
+  body=`Priority risks for the current scenario:
+
+1. Site calibration — public soil and climate layers must be verified with field soil sampling and local weather observations.
+2. Cultivar–rootstock fit — recommendations must account for drainage, vigor, fire-blight risk, replant status and market demand.
+3. Yield uncertainty — the displayed mature yield is illustrative until calibrated with regional orchard data.
+4. Operational fit — ${c.rs.toFixed(1)} m rows must be checked against tractor, sprayer, turning radius and harvest logistics.
+5. Adoption and governance — farmers need explainable recommendations, clear data ownership and an agronomist override.
+
+Recommended next action: validate one management zone and compare at least three cultivar–rootstock combinations before committing to the full 10 ha.`;
+ } else if(mode==='compare' || q.includes('compare')){
+  const lowTrees=Math.round(100000/((c.rs+.6)*(c.ts+.25)));
+  body=`Scenario comparison
+
+Current balanced design: ${c.sys}, ${c.rs.toFixed(1)} × ${c.ts.toFixed(1)} m, approximately ${c.trees.toLocaleString()} trees. It favors early production and sensor-rich management.
+
+Lower-density alternative: ${(c.rs+.6).toFixed(1)} × ${(c.ts+.25).toFixed(2)} m, approximately ${lowTrees.toLocaleString()} trees. It reduces establishment cost and may improve machinery access, light penetration and resilience, but usually delays maximum output per hectare.
+
+Decision rule: choose the current design when capital, labor and precision management capacity are strong; choose the lower-density design when risk reduction, simpler operations and lower initial investment dominate.`;
+ } else if(q.includes('variet') || q.includes('rootstock') || q.includes('cultivar')){
+  body=`Preliminary cultivar–rootstock shortlist for a Wageningen-area pilot
+
+• Elstar or Santana on M.9/T337: locally relevant dessert-apple candidates for a high-density reference block; require good support, irrigation and vigor management.
+• Topaz on M.9 or a suitable Geneva dwarfing rootstock: useful as a disease-resilient comparison, especially where reduced-input production is an objective.
+• Natyra/SQ159 on a compatible dwarfing rootstock: useful for a premium, scab-resistant trial, subject to plant availability and licensing.
+• A vigorous control combination on M.26 or MM.106: only for zones where soil, anchorage and drainage justify more vigor; check woolly apple aphid, fire blight and waterlogging constraints.
+
+The LLM should not make the final selection alone. Rank candidates using AgERA5/KNMI climate indicators, SoilGrids plus field samples, cultivar phenology and disease traits, rootstock vigor and resistance, and cooperative market requirements. For this ${c.org}% organic-learning scenario, disease resistance should receive a higher optimization weight.`;
+ } else if(mode==='explain' || q.includes('explain') || q.includes('sustainable')){
+  body=`Why the current design is potentially sustainable
+
+The ${c.sys} system at ${c.rs.toFixed(1)} × ${c.ts.toFixed(1)} m creates a measurable design that can be simulated before planting. ${c.irr} irrigation responds to soil moisture and weather rather than using a fixed calendar. ${c.spray} spraying can adjust dose to canopy size and gaps, reducing off-target application. A ${c.org}% organic learning block creates a controlled comparison instead of converting the whole orchard at once.
+
+The Digital Twin adds value by recording assumptions, predicting trade-offs, updating the model with drone and sensor observations, and explaining why a recommendation changed.`;
+ } else {
+  body=`Recommendation for ${audience}
+
+Keep the current ${c.sys} scenario as the balanced reference design, but do not treat it as the final answer. Create three digital alternatives: high-density/early-return, balanced, and low-input/resilient. Use public weather and soil layers to divide the 10 ha into management zones, then shortlist cultivar–rootstock pairs for each zone.
+
+For the first field validation, test two dwarfing combinations and one moderately vigorous control. Measure establishment cost, canopy growth, water use, disease incidence, yield, fruit quality and labor. The LLM should convert those results into plain-language recommendations while the numerical decision engine remains responsible for scoring and optimization.`;
+ }
+ return `${title}
+Audience: ${audience}
+Mode: ${mode}
+
+${body}
+
+Important: This is a prototype decision-support response. Final horticultural decisions require local measurements and expert validation.`;
+}
+function runCopilot(){
+ const prompt=$('llmPrompt').value.trim()||'Recommend the next best action for this orchard scenario.';
+ const out=$('llmOutput'); out.classList.add('thinking'); out.textContent='Analyzing current Digital Twin context…';
+ setTimeout(()=>{out.classList.remove('thinking');out.textContent=localLLM(prompt,$('llmMode').value,$('llmAudience').value);},450);
+}
+$('askCopilot').addEventListener('click',runCopilot);
+$('useScenario').addEventListener('click',()=>{const c=scenarioContext();$('llmPrompt').value=`Evaluate the current ${c.sys} scenario at ${c.rs.toFixed(1)} m × ${c.ts.toFixed(1)} m with ${c.irr}, ${c.spray} spraying and ${c.org}% organic pilot area.`;runCopilot();});
+$('clearCopilot').addEventListener('click',()=>{$('llmPrompt').value='';$('llmOutput').textContent='Select a suggested question or enter your own request. The copilot will ground its response in the current orchard scenario.';});
+
+const siteZones=[
+ {name:'Zone A — well-drained ridge',ph:6.4,drain:'Good',frost:'Low',slope:1.8,water:'Medium',gdd:1490,wet:25,drought:45},
+ {name:'Zone B — central loam',ph:6.7,drain:'Moderate',frost:'Medium',slope:0.8,water:'High',gdd:1470,wet:45,drought:25},
+ {name:'Zone C — lower wet pocket',ph:6.1,drain:'Restricted',frost:'High',slope:0.3,water:'High',gdd:1435,wet:78,drought:15},
+ {name:'Zone D — exposed boundary',ph:5.8,drain:'Good',frost:'Medium',slope:2.4,water:'Low',gdd:1510,wet:20,drought:70}
+];
+const combinations=[
+ {cultivar:'Elstar',root:'M.9 T337',yield:88,resilience:66,organic:55,storage:62,wet:48,drought:35,frost:60,ph:[5.8,7.0],note:'Locally familiar dessert apple; intensive support and irrigation required.'},
+ {cultivar:'Santana',root:'G.11',yield:78,resilience:89,organic:92,storage:68,wet:74,drought:55,frost:66,ph:[5.7,7.2],note:'Strong scab-resistance profile for a low-input or organic pilot.'},
+ {cultivar:'Topaz',root:'G.41',yield:82,resilience:88,organic:90,storage:80,wet:70,drought:58,frost:62,ph:[5.8,7.2],note:'Disease-resilient combination with good storage potential.'},
+ {cultivar:'Conference-pollination mix / Gala',root:'M.26',yield:84,resilience:68,organic:58,storage:74,wet:62,drought:58,frost:68,ph:[5.7,7.1],note:'Moderate vigour option for less intensive zones; verify anchorage and disease risks.'},
+ {cultivar:'Red Prince',root:'G.935',yield:86,resilience:79,organic:70,storage:90,wet:65,drought:64,frost:58,ph:[5.8,7.3],note:'High storage and market-window potential; requires market and licensing check.'},
+ {cultivar:'Natyra® / SQ159',root:'G.41',yield:74,resilience:92,organic:95,storage:86,wet:75,drought:55,frost:64,ph:[5.8,7.1],note:'Promising premium organic candidate; availability and commercial rights must be checked.'}
+];
+let activeZone=0;
+function siteScore(c,z,priority,scenario){
+ let score=0;
+ const phFit=(z.ph>=c.ph[0]&&z.ph<=c.ph[1])?95:Math.max(35,95-Math.min(Math.abs(z.ph-c.ph[0]),Math.abs(z.ph-c.ph[1]))*45);
+ const drainFit=z.wet>60?c.wet:(z.drought>55?c.drought:(c.wet+c.drought)/2);
+ const frostFit=z.frost==='High'?c.frost:z.frost==='Medium'?(c.frost+75)/2:82;
+ const weights={balanced:[.22,.25,.18,.15,.20],yield:[.38,.18,.12,.12,.20],resilience:[.14,.42,.10,.12,.22],organic:[.12,.28,.38,.08,.14],storage:[.16,.18,.10,.40,.16]}[priority];
+ score=weights[0]*c.yield+weights[1]*c.resilience+weights[2]*c.organic+weights[3]*c.storage+weights[4]*(.35*phFit+.4*drainFit+.25*frostFit);
+ if(scenario==='2035') score+=.12*c.drought-.08*(100-c.drought);
+ if(scenario==='wet') score+=.13*c.wet-.07*(100-c.wet);
+ if(scenario==='frost') score+=.14*c.frost-.06*(100-c.frost);
+ return Math.max(0,Math.min(99,Math.round(score)));
+}
+function renderSiteEngine(){
+ const z=siteZones[activeZone],priority=$('sitePriority').value,scenario=$('climateScenario').value;
+ $('zoneTabs').innerHTML=siteZones.map((x,i)=>`<button class="zone-tab ${i===activeZone?'active':''}" data-zone="${i}">Zone ${String.fromCharCode(65+i)}</button>`).join('');
+ document.querySelectorAll('.zone-tab').forEach(b=>b.onclick=()=>{activeZone=+b.dataset.zone;renderSiteEngine();});
+ $('zoneName').textContent=z.name;$('soilPH').textContent=z.ph.toFixed(1);$('drainage').textContent=z.drain;$('frost').textContent=z.frost;$('slope').textContent=z.slope.toFixed(1)+'%';$('waterAvail').textContent=z.water;$('gdd').textContent=z.gdd.toLocaleString();
+ const ranked=combinations.map(c=>({...c,score:siteScore(c,z,priority,scenario)})).sort((a,b)=>b.score-a.score);
+ $('rankList').innerHTML=ranked.slice(0,4).map((c,i)=>{
+  const positives=[]; const risks=[];
+  if(c.resilience>84)positives.push('strong disease/climate resilience');if(c.organic>85)positives.push('good organic-pilot fit');if(c.storage>84)positives.push('long storage potential');if(c.yield>84)positives.push('high yield potential');
+  if(z.wet>60&&c.wet<65)risks.push('drainage/root-health risk');if(z.drought>55&&c.drought<55)risks.push('irrigation dependence');if(z.frost==='High'&&c.frost<65)risks.push('flowering/frost exposure');if(!(z.ph>=c.ph[0]&&z.ph<=c.ph[1]))risks.push('pH correction may be needed');
+  return `<div class="rank-item"><div class="rank-head"><div><b>#${i+1} ${c.cultivar} × ${c.root}</b></div><div class="score">${c.score}</div></div><div class="bar"><i style="width:${c.score}%"></i></div><div class="reason">${c.note}<br><b>Why:</b> ${positives.join(', ')||'balanced fit across current criteria'}. ${risks.length?`<span class="risk"><b>Check:</b> ${risks.join(', ')}.</span>`:'No major screening-level conflict detected.'}</div></div>`;
+ }).join('');
+}
+$('sitePriority').addEventListener('input',renderSiteEngine);$('climateScenario').addEventListener('input',renderSiteEngine);renderSiteEngine();
+
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{$('llmPrompt').value=b.dataset.q;runCopilot();}));
+
+</script>
+</body>
+</html>
